@@ -1,2 +1,3 @@
 .vscode/
 fs/ext2/fs
+**/*.out
