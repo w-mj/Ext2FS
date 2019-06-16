@@ -15,9 +15,13 @@ test_module() {
     if [ ! -d 'bin' ]; then
         mkdir bin
     fi
-    echo "Compiling..."
+    # echo "Compiling..."
+    set -x
+    make
     g++ $path obj/*.o -I. -Iinclude -o 'bin/test_'$1'.out'
-    echo "Run test case."
+    set +x
+
+    echo -e "Run test case.\n=======\n"
     'bin/test_'$1'.out'
 }
 
