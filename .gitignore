@@ -2,3 +2,5 @@
 fs/ext2/fs
 **/*.out
 bin/
+obj/
+**/.depend

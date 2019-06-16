@@ -54,7 +54,4 @@ typedef _u64 __bitwise _be64;
 
 #define _Inext(pI, i) ((pI) + (i))->_next
 
-#define nullptr NULL
-#define null NULL
-
 #endif

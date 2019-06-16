@@ -16,7 +16,7 @@ test_module() {
         mkdir bin
     fi
     echo "Compiling..."
-    g++ $path -Iinclude -o 'bin/test_'$1'.out'
+    g++ $path obj/*.o -I. -Iinclude -o 'bin/test_'$1'.out'
     echo "Run test case."
     'bin/test_'$1'.out'
 }

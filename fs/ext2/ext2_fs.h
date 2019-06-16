@@ -1,5 +1,5 @@
-#ifndef _INODE_H_
-#define _INODE_H_
+#ifndef _EXT2_FS_H
+#define _EXT2_FS_H
 #include "types.h"
 
 namespace EXT2 {
@@ -120,7 +120,7 @@ struct Inode {
     _u32 ctime; // 索引节点最后改变的时间
     _u32 mtime; // 文件内容最后改变的时间
     _u32 dtime; // 文件删除的时间
-    _u16 git; // 组
+    _u16 gid; // 组
     _u16 links_count; // 硬链接计数器
     _u32 blocks; // 文件的数据块数
     _u32 flags; // 文件标志
@@ -156,6 +156,7 @@ struct DirEntry {
 };
 
 class FS {
+    
 };
 }
 
