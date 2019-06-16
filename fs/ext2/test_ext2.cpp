@@ -3,5 +3,7 @@
 using namespace std;
 
 int main(void) {
-    cout << sizeof(ext2_super_block) << endl;
+    cout << sizeof(EXT2::SuperBlock) << endl;
+    cout << sizeof(EXT2::GroupDescriptor) << endl;
+    cout << sizeof(EXT2::Inode) << endl;
 }
