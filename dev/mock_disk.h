@@ -1,14 +1,15 @@
-#ifndef _MOCK_DISK_H_
-#define _MOCK_DISK_H_
+#pragma once
+
 #include "block_dev.h"
-#include <fstream>
+#include <stdio.h>
 
 namespace Dev
 {
 
-class MockDisk: BlockDevice {
+class MockDisk: public BlockDevice {
 private:
-    std::fstream f;
+    // std::fstream f;
+    FILE* f;
 public:
     _u32 read(MM::Buf& buf, _u32 size);
     _u32 write(MM::Buf& buf, _u32 size);
@@ -20,6 +21,3 @@ public:
 
     
 } // namespace Dev
-
-
-#endif

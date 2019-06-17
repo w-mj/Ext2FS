@@ -1,6 +1,4 @@
-
-#ifndef _TYPES_H_
-#define _TYPES_H_
+#pragma once
 
 
 typedef signed char _i8;
@@ -53,5 +51,3 @@ typedef _u64 __bitwise _be64;
 #define _LNclr(a, n) ((a & (_BITS_MASK(n))))
 
 #define _Inext(pI, i) ((pI) + (i))->_next
-
-#endif

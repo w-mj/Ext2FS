@@ -1,6 +1,8 @@
-#ifndef _EXT2_FS_H
-#define _EXT2_FS_H
+#pragma once
+
 #include "types.h"
+#include "fs/vfs.h"
+#include "dev/block_dev.h"
 
 namespace EXT2 {
 constexpr _u16 VALID_FS = 0x01; // 文件系统状态定义，没有正常卸载
@@ -13,7 +15,7 @@ struct SuperBlock {
     _u32 blocks_count; // 文件系统中总块数
     _u32 r_blocks_count; // 文件系统中保留块数目
     _u32 free_blocks_count; // 文件系统中空闲块数目
-    _u32 free_inodes_count; // 文件系统中空心Inode数量
+    _u32 free_inodes_count; // 文件系统中空闲Inode数量
     _u32 first_data_block; // 第一个数据块的位置，通常当数据块大小为1k时为1，否则为0
     _u32 log_block_size; // 块大小，以2的幂次方表示，1024字节为单位。
     _i32 log_frag_size; // 逻辑片大小，用于实现块片，即将一个块分成多个片，以保存多个文件的数据
@@ -155,9 +157,9 @@ struct DirEntry {
 	_u8 name[NAME_LEN];  // 文件名
 };
 
-class FS {
-    
+class EXT2_FS: VFS::FS {
+public:
+    EXT2_FS(Dev::BlockDevice* dev);
+    void mount();
 };
 }
-
-#endif

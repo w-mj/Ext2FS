@@ -1,5 +1,5 @@
-#ifndef _BUF_H_
-#define _BUF_H_
+#pragma once
+
 #include "types.h"
 namespace MM {
     class Buf {
@@ -17,6 +17,3 @@ namespace MM {
     };
     
 } // namespace Buf
-
-
-#endif

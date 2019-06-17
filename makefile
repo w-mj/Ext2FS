@@ -23,7 +23,7 @@ CC_FLAG = $(INC_FLAG) $(DEF_FLAG)
 # BIN_FILE = $(addprefix $(BIN_PATH)/, $(MAIN_NAME))
 
 
-CLEAN_OBJ =$(OBJ_FILE) .depend #$(BIN_FILE) $(LIB_FILE)
+CLEAN_OBJ =$(OBJ_FILE) .depend bin/* #$(BIN_FILE) $(LIB_FILE)
 build: .depend $(OBJ_FILE)
 # 	echo $(INC_FLAG)
 
@@ -34,9 +34,9 @@ $(BIN_FILE): $(OBJ_FILE)# $(MAIN_FILE)
 	g++ -MM $(CC_FLAG) $^ > $@
 	sed -i '/.o:/ s,^,obj/,' $@
 
-sinclude .depend
+include .depend
 
-$(OBJ_PATH)/%.o: $(SRC_FILE) $(MAKEFILE_LIST)
+$(OBJ_PATH)/%.o:
 	g++ -c $<  $(CC_FLAG) -o $@
 
 rebuild: clean build

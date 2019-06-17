@@ -1,5 +1,4 @@
-#ifndef _BLOCK_DEV_H_
-#define _BLCOK_DEV_H_
+#pragma once
 #include "mm/buf.h"
 #include "types.h"
 #include <string>
@@ -17,5 +16,3 @@ public:
 };
 
 } // namespace Dev
-
-#endif

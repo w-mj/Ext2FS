@@ -17,6 +17,7 @@ test_module() {
     fi
     # echo "Compiling..."
     set -x
+    rm 'bin/test_'$1'.out'
     make
     g++ $path obj/*.o -I. -Iinclude -o 'bin/test_'$1'.out'
     set +x
@@ -24,6 +25,7 @@ test_module() {
     echo -e "Run test case.\n=======\n"
     'bin/test_'$1'.out'
 }
+
 
 help() {
     echo "Useage: dev.sh <subcommand>"
@@ -38,4 +40,7 @@ if [ $# -eq "0" ]; then
 fi
 if [ $1 = "test" ]; then
     test_module $2
+fi
+if [ $1 = "make" ]; then
+    make_make
 fi
