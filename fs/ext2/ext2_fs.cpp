@@ -1,6 +1,7 @@
 #include "ext2_fs.h"
 #include "mm/buf.h"
 #include "delog/delog.h"
+#include "stat.h"
 
 #include <cstring>
 #include <iostream>
@@ -48,7 +49,7 @@ void EXT2_FS::printFS() {
 void EXT2_FS::printInode(Inode* i) {
     using namespace std;
     cout << "\nInode:" << endl;
-    cout << "文件类型和访问权限 " << i->mode << endl;
+    cout << "文件类型和访问权限 " << i->mode << mode_to_str(i->mode) << endl;
     cout << "拥有者 " << i->uid << endl;
     cout << "文件长度 " << i->size << endl;
     cout << "最后一次访问时间 " << i->atime << endl;
