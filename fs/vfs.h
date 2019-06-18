@@ -9,13 +9,19 @@
 
 namespace VFS
 {
-    class File;
+    class Inode;
+    class FS;
 
-    class Directory {
+    /**
+     * 一个目录项
+     */
+    class DEntry {
     public:
-        std::list<File*> files;
-        std::list<Directory*> directorys;
-        
+        FS* fs;
+        Inode* inode;
+        DEntry* parent;
+
+        std::string name;
     };
 
 
@@ -25,14 +31,15 @@ namespace VFS
         _u32 flag;  // 安装标志
         _u32 magic;  // 文件系统标志
         
-        Directory* root = nullptr;  // 根目录
+        DEntry* root = nullptr;  // 根目录
         _i32 count;  // 引用计数器
 
         void** xattr;  // 指向扩展属性的指针
         FS(Dev::BlockDevice* dev): dev(dev) {}
     };
     
-    class File {
+    class Inode {
+    public:
         _u32 ino;  // 索引节点号
         _i32 counter;  // 引用计数器
         _u16 mode; // 文件类型与访问权限
@@ -53,9 +60,9 @@ namespace VFS
 
         FS* fs;
     public:
-        File(FS* fs1):fs(fs1), dev(fs1->dev) {}
+        Inode(FS* fs1):fs(fs1), dev(fs1->dev) {}
         
-        void create(Directory*, int mode);  // 为与目录项相关联的普通文件创建一个索引节点
+        void create(DEntry*, int mode);  // 为与目录项相关联的普通文件创建一个索引节点
 
     };
     

@@ -39,6 +39,13 @@ include .depend
 $(OBJ_PATH)/%.o:
 	g++ -c $<  $(CC_FLAG) -o $@
 
+# $(BIN_PATH)/%.out:
+# 	TEST_NAME = $(notdir $@)
+# 	TEST_FILE = $(patsubst %.out, %.cpp, $(TEST_NAME))
+# 	TEST_FILE = $(shell find . -name $(TEST_FILE).cpp)
+
+
+
 rebuild: clean build
 
 clean:

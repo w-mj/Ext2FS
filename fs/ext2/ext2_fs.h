@@ -157,15 +157,23 @@ struct DirEntry {
 	_u8 name[NAME_LEN];  // 文件名
 };
 
-class EXT2_FS: VFS::FS {
+class EXT2_FS: public VFS::FS {
     std::list<GroupDescriptor*> gdt_list;
     SuperBlock* sb;
+    _u32 block_size;
 
     void printFS();
+    void printInode(Inode*);
     int block_to_pos(int block);
 public:
     EXT2_FS(Dev::BlockDevice* dev);
     void mount();
     ~EXT2_FS();
 };
+
+class EXT2_Inode: public VFS::Inode {
+public:
+    EXT2_Inode(EXT2_FS*, EXT2::Inode*);
+};
+
 }

@@ -1,6 +1,7 @@
 #include "mock_disk.h"
 #include <unistd.h>
 #include <iostream>
+#include "delog/delog.h"
 
 using namespace Dev;
 
@@ -24,6 +25,7 @@ _u32 MockDisk::tell() {
 }
 
 void MockDisk::seek(_u32 pos) {
+    _si(pos);
     fseek(f, pos, SEEK_SET);
 }
 

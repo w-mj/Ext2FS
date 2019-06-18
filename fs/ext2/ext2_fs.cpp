@@ -21,7 +21,7 @@ void EXT2_FS::printFS() {
     cout << "文件系统中空闲块数目 " << sb->free_blocks_count << endl;
     cout << "文件系统中空闲Inode数量 " << sb->free_inodes_count << endl;
     cout << "第一个使用的块号 " << sb->first_data_block << endl;
-    cout << "块大小 " << 1024 * (1 << sb->log_block_size) << endl;
+    cout << "块大小 " << block_size << endl;
     cout << "逻辑片大小 " << sb->log_frag_size << endl;
     cout << "每组块数 " << sb->blocks_per_group << endl;
     cout << "每组碎片数 " << sb->frags_per_group << endl;
@@ -45,8 +45,33 @@ void EXT2_FS::printFS() {
     }
 }
 
+void EXT2_FS::printInode(Inode* i) {
+    using namespace std;
+    cout << "\nInode:" << endl;
+    cout << "文件类型和访问权限 " << i->mode << endl;
+    cout << "拥有者 " << i->uid << endl;
+    cout << "文件长度 " << i->size << endl;
+    cout << "最后一次访问时间 " << i->atime << endl;
+    cout << "索引节点最后改变的时间 " << i->ctime << endl;
+    cout << "文件内容最后改变的时间 " << i->mtime << endl;
+    cout << "文件删除的时间 " << i->dtime << endl;
+    cout << "组id " << i->gid << endl;
+    cout << "硬链接计数器 " << i->links_count << endl;
+    cout << "文件的数据块数 " << i->blocks << endl;
+    cout << "文件标志 " << i->flags << endl;
+    cout << "文件版本 " << i->generation << endl;
+    cout << "文件访问控制列表 " << i->file_acl << endl;
+    cout << "目录访问控制列表 " << i->dir_acl << endl;
+    cout << "片地址 " << i->faddr << endl;
+    cout << "数据块指针 ";
+    for (int j = 0; j < i->blocks;j++)
+        cout << i->block[j] << " ";
+    cout << endl;
+}
+
 int EXT2_FS::block_to_pos(int block) {
-    return (block - 1) * sb->log_block_size + 1024;
+    _si(block);
+    return (block - 1) * block_size + 1024;
 }
 
 void EXT2_FS::mount() {
@@ -61,8 +86,8 @@ void EXT2_FS::mount() {
     _si(sb->blocks_per_group);
 
     // 1024 * (1 << sb->log_block_size) * 8;
-    
-    dev->seek(1024 * (1 << sb->log_block_size) + 1024);  // 指向GDT
+    block_size = 1024 * (1 << sb->log_block_size);
+    dev->seek(block_size + 1024);  // 指向GDT
 
     int group_cnt = 8 * sb->blocks_count / sb->blocks_per_group;
     for (int i = 0; i < group_cnt; i++) {
@@ -73,11 +98,19 @@ void EXT2_FS::mount() {
     }
 
     // 数据块位图
-    dev->seek(block_to_pos(gdt_list.front()->block_bitmap));
-    dev->read(sb_buf, sb->log_block_size);
-    _sa(sb_buf.data + 5, 5);
-    
+    dev->seek(block_to_pos(gdt_list.front()->inode_bitmap));
+    dev->read(sb_buf, block_size);
+    _sa(sb_buf.data, 1024);
+
+    // 第一个索引节点 / 
+    dev->seek(block_to_pos(gdt_list.front()->inode_table));
+    dev->read(sb_buf, sizeof(Inode));
+    dev->read(sb_buf, sizeof(Inode));
+    Inode* root_inode = new Inode();
+    memmove(root_inode, sb_buf.data, sizeof(Inode));
+    // _sa(sb_buf.data, 1024);
     printFS();
+    printInode(root_inode);
 }
 
 EXT2_FS::~EXT2_FS() {
@@ -85,4 +118,23 @@ EXT2_FS::~EXT2_FS() {
         delete x;
     }
     delete sb;
+}
+
+EXT2_Inode::EXT2_Inode(EXT2_FS *fs, EXT2::Inode *i): VFS::Inode(fs) {
+    ino = 0;
+    counter = 0;
+    mode = i->mode;
+    nlink = i->links_count;
+    uid = i->uid;
+    gid = i->gid;
+    dev = fs->dev;
+    size = i->size;
+    atime = i->atime;
+    mtime = i->mtime;
+    ctime = i->ctime;
+    blkbits = 0;
+    version = i->generation;
+    blocks = i->blocks;
+    bytes = 0;
+    sock = 1;
 }
