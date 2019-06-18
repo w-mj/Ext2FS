@@ -16,12 +16,12 @@ void EXT2_FS::printFS() {
     using namespace std;
     cout << endl;
     cout << "文件系统中Inode数量 " << sb->inodes_count << endl;
-    cout << "文件系统中总块数 " << sb->blocks_count << endl;
+    cout << "以块为单位的文件系统大小 " << sb->blocks_count << endl;
     cout << "文件系统中保留块数目 " << sb->r_blocks_count << endl;
     cout << "文件系统中空闲块数目 " << sb->free_blocks_count << endl;
     cout << "文件系统中空闲Inode数量 " << sb->free_inodes_count << endl;
-    cout << "第一个数据块的位置 " << sb->first_data_block << endl;
-    cout << "块大小 " << 1024 * pow(2, sb->log_block_size) << endl;
+    cout << "第一个使用的块号 " << sb->first_data_block << endl;
+    cout << "块大小 " << 1024 * (1 << sb->log_block_size) << endl;
     cout << "逻辑片大小 " << sb->log_frag_size << endl;
     cout << "每组块数 " << sb->blocks_per_group << endl;
     cout << "每组碎片数 " << sb->frags_per_group << endl;
@@ -45,6 +45,10 @@ void EXT2_FS::printFS() {
     }
 }
 
+int EXT2_FS::block_to_pos(int block) {
+    return (block - 1) * sb->log_block_size + 1024;
+}
+
 void EXT2_FS::mount() {
     sb = new SuperBlock();
     dev->seek(1024);  // 跳过引导块
@@ -55,16 +59,24 @@ void EXT2_FS::mount() {
     _si(sb->log_block_size);
     _si(sb->blocks_count);
     _si(sb->blocks_per_group);
+
+    // 1024 * (1 << sb->log_block_size) * 8;
     
     dev->seek(1024 * (1 << sb->log_block_size) + 1024);  // 指向GDT
 
-    int group_cnt = sb->blocks_count / sb->blocks_per_group;
+    int group_cnt = 8 * sb->blocks_count / sb->blocks_per_group;
     for (int i = 0; i < group_cnt; i++) {
         GroupDescriptor* gtp = new GroupDescriptor();
         dev->read(sb_buf, sizeof(GroupDescriptor));
-        memmove(gtp, sb_buf.data, 1024);
+        memmove(gtp, sb_buf.data, sizeof(GroupDescriptor));
         gdt_list.push_back(gtp);
     }
+
+    // 数据块位图
+    dev->seek(block_to_pos(gdt_list.front()->block_bitmap));
+    dev->read(sb_buf, sb->log_block_size);
+    _sa(sb_buf.data + 5, 5);
+    
     printFS();
 }
 

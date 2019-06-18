@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "delog.h"
 #define wmj_null (_I)-1
 
@@ -289,6 +290,8 @@ _wmj_delog_END:
 #define fmt_ext_hex(s, n) fmt_str(s, n, "XX ")
 #define fmt_continue(s, n, num) fmt_str(s, n, ".. (mode %d bytes not show)\n", num)
 #define fmt_new_line(s, n, addr) fmt_str(s, n, "\n0x%08x : ", _Lclr(addr, 4))
+#define fmt_ascii(s, n, d) fmt_str(s, n, "%c", isprint(d)?(_u8)(d):'.')
+#define fmt_dot(s, n) fmt_str(s, n, "x")
 
 #define DEF_SHOW_MAX 256
 #define LINEBSIZE 4
@@ -300,17 +303,28 @@ _I print_bin(_s s, _I size, _u8 *p, _I len) {
     _I suffixnum;
     _I i = 0, j = 0, re = 0, n = size;
     if (prefixnum) {
+        // 有前缀X
         fmt_new_line(s, n, (_u32)(_i64)(p + i));
     }
-        //printf("%x\n%s\n", prefixnum, ms_buf);
-
+    //printf("%x\n%s\n", prefixnum, ms_buf);
     while (i < prefixnum) {
+        // 打印X
         fmt_ext_hex(s, n);
         i++;
     }
 
+    _I last_i = i;
     while ((i < DEF_SHOW_MAX) && (len > 0)) {
         if ((i & _BITS_MASK(LINEBSIZE)) == 0) {
+            last_i = LINENUM;
+            if (j > 0 && j < LINENUM + 1) {
+                for (int t = 0; t < LINENUM - j; t++)
+                    fmt_dot(s, n);
+                last_i = j;
+            } 
+            while (j > 0 && last_i--) {
+                fmt_ascii(s, n, p[j - last_i - 1]);
+            }
             fmt_new_line(s, n, (_u32)(_i64)(p + i));
         }
         fmt_one_hex(s, n, p[j]);
@@ -318,10 +332,37 @@ _I print_bin(_s s, _I size, _u8 *p, _I len) {
         j++;
         len--;
     }
-    suffixnum = _LNclr(LINENUM - i, 4);
-    while (suffixnum) {
+    i = suffixnum = _LNclr(LINENUM - i, 4);
+    i = 0;
+    while (i < suffixnum) {
         fmt_ext_hex(s, n);
-        suffixnum--;
+        i++;
+    }
+ 
+    i = 0;
+    if (len) {
+        last_i = LINENUM;
+        if (j > 0 && j < LINENUM + 1) {
+            for (int t = 0; t < LINENUM - j; t++)
+                fmt_dot(s, n);
+            last_i = j;
+        }
+        while (j > 0 && last_i--) {
+            fmt_ascii(s, n, p[j - last_i - 1]);
+        }
+    } else {
+        last_i = LINENUM - suffixnum;
+        if (j < LINENUM)
+            last_i -= prefixnum;
+        if (j + prefixnum < LINENUM)
+            while(prefixnum--)
+                fmt_dot(s, n);
+        while (last_i--) {
+            fmt_ascii(s, n, p[j - last_i]);
+        }
+    }
+    while (suffixnum--) {
+        fmt_dot(s, n);
     }
     if (len > 0) {
         fmt_new_line(s, n, (_u32)(_i64)(p + i));
