@@ -10,8 +10,8 @@ typedef unsigned int _u32;
 typedef signed long _i64;
 typedef unsigned long _u64;
 typedef _u32 _I;
-typedef _u8 _c;
-typedef _c* _s;
+typedef char _c;
+typedef char* _s;
 typedef void* _p;
 
 #ifdef __CHECKER__

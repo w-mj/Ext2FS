@@ -4,3 +4,4 @@ fs/ext2/fs
 bin/
 obj/
 **/.depend
+out/*

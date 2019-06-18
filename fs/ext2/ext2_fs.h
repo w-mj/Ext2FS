@@ -158,8 +158,12 @@ struct DirEntry {
 };
 
 class EXT2_FS: VFS::FS {
+    std::list<GroupDescriptor*> gdt_list;
+    void printFS();
+    SuperBlock* sb;
 public:
     EXT2_FS(Dev::BlockDevice* dev);
     void mount();
+    ~EXT2_FS();
 };
 }
