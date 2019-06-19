@@ -138,16 +138,7 @@ struct Inode {
  * ext2中目录结构
  */
 constexpr int NAME_LEN = 255;
-enum FileType {
-	Unknown=0,
-	RegularFile,
-	Directory,
-	CharacterDevice,
-	BlockDevice,
-	NamedPipe,
-	Socket,
-	SymbolLink
-};
+
 struct DirEntry {
 	_u32 inode;  // 目标的索引节点号
 	_u16 rec_len;  // 目录项长度  当前项起始位置+目录项长度=下一个目录项位置

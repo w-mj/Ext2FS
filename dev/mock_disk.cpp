@@ -6,7 +6,7 @@
 using namespace Dev;
 
 _u32 MockDisk::read(MM::Buf& buf, _u32 size) {
-    std::cout << "\n开始读文件"<<ftell(f)<<std::endl;
+    //std::cout << "\n开始读文件"<<ftell(f)<<std::endl;
     fread(buf.data, size, 1, f);
     // f.read(buf.data, size);
     // for (int i = 0; i < size; i++)
@@ -25,7 +25,7 @@ _u32 MockDisk::tell() {
 }
 
 void MockDisk::seek(_u32 pos) {
-    _si(pos);
+    //_si(pos);
     fseek(f, pos, SEEK_SET);
 }
 

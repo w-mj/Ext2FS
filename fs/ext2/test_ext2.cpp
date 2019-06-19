@@ -12,4 +12,8 @@ int main(void) {
     Dev::MockDisk d;
     d.open("fs/ext2/fs");
     EXT2::EXT2_FS ext2(&d);
+
+    for (auto& x: ext2.root->children) {
+        cout << x->name << "  " << (int)x->type << "  " << x->inode_n << endl;
+    }
 }

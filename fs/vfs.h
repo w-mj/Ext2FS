@@ -9,6 +9,18 @@
 
 namespace VFS
 {
+
+    enum FileType {
+        Unknown=0,
+        RegularFile,
+        Directory,
+        CharacterDevice,
+        BlockDevice,
+        NamedPipe,
+        Socket,
+        SymbolLink
+    };
+
     class Inode;
     class FS;
 
@@ -26,6 +38,9 @@ namespace VFS
         std::string name;
 
         std::list<DEntry*> children;
+
+        virtual void inflate()=0;
+        virtual void load_children()=0;
     };
 
     class FS {

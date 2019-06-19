@@ -71,7 +71,7 @@ void EXT2_FS::printInode(Inode* i) {
 }
 
 int EXT2_FS::block_to_pos(int block) {
-    _si(block);
+    // _si(block);
     return (block - 1) * block_size + 1024;
 }
 
@@ -82,9 +82,9 @@ void EXT2_FS::mount() {
     dev->read(sb_buf, 1024);  // 先读1k的超级块
     memmove(sb, sb_buf.data, 1024);
 
-    _si(sb->log_block_size);
-    _si(sb->blocks_count);
-    _si(sb->blocks_per_group);
+    // _si(sb->log_block_size);
+    // _si(sb->blocks_count);
+    // _si(sb->blocks_per_group);
 
     // 1024 * (1 << sb->log_block_size) * 8;
     block_size = 1024 * (1 << sb->log_block_size);
@@ -101,7 +101,7 @@ void EXT2_FS::mount() {
     // 数据块位图
     dev->seek(block_to_pos(gdt_list.front()->inode_bitmap));
     dev->read(sb_buf, block_size);
-    _sa(sb_buf.data, 1024);
+    // _sa(sb_buf.data, 1024);
 
     // 第一个索引节点 / 
     // dev->seek(block_to_pos(gdt_list.front()->inode_table));
@@ -111,14 +111,14 @@ void EXT2_FS::mount() {
     // memmove(root_inode, sb_buf.data, sizeof(Inode));
     _u32 root_inode_pos = block_to_pos(gdt_list.front()->inode_table) + sizeof(Inode);
     EXT2_DEntry* ext2_entry;
-    ext2_entry = new EXT2_DEntry(this, nullptr, root_inode_pos, Directory, "/");
+    ext2_entry = new EXT2_DEntry(this, nullptr, root_inode_pos, VFS::Directory, "/");
     root = ext2_entry;
     ext2_entry->inflate();
     ext2_entry->load_children();
     
     // _sa(sb_buf.data, 1024);
-    printFS();
-    printInode(ext2_entry->ext2_inode->i);
+    //printFS();
+    //printInode(ext2_entry->ext2_inode->i);
 }
 
 EXT2_FS::~EXT2_FS() {
@@ -164,7 +164,7 @@ void EXT2_DEntry::load_children() {
         inflate();
     }
     _error(ext2_inode == nullptr);
-    _si(ext2_inode->size);
+    //_si(ext2_inode->size);
 
     Dev::BlockDevice* dev = ext2_fs->dev;
     MM::Buf buf(ext2_fs->block_size);
@@ -178,12 +178,14 @@ void EXT2_DEntry::load_children() {
     _u32 next_length = 12;
     DirEntry *temp_str = new DirEntry();
     while (true) {
+        // _sa(buf.data + s_pos, 20);
         memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
         if (temp_str->rec_len == 0)
             break;
         EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
                 temp_str->inode, temp_str->file_type, 
                 std::string((char*)temp_str->name, temp_str->name_len));
+        children.push_back(sub);
         // std::cout << sub->name << " " << sub->inode_n << std::endl;
         s_pos += temp_str->rec_len;
     }
@@ -193,7 +195,7 @@ void EXT2_DEntry::inflate() {
     EXT2::Inode* disk_inode = new Inode();
     MM::Buf buf(sizeof(Inode));
     _u32 inode_pos = inode_n;
-    _si(inode_pos);
+    // _si(inode_pos);
     fs->dev->seek(inode_pos);
     fs->dev->read(buf, sizeof(Inode));
     memcpy(disk_inode, buf.data, sizeof(Inode));
