@@ -10,7 +10,8 @@
 using namespace EXT2;
 
 EXT2_FS::EXT2_FS(Dev::BlockDevice* dev): FS(dev) {
-    mount();
+    // mount();
+    status = VFS::FS_unmounted;
 }
 
 void EXT2_FS::printFS() {
@@ -82,6 +83,9 @@ void EXT2_FS::mount() {
     dev->read(sb_buf, 1024);  // 先读1k的超级块
     memmove(sb, sb_buf.data, 1024);
 
+    magic = sb->magic;
+    _sx(magic);
+
     // _si(sb->log_block_size);
     // _si(sb->blocks_count);
     // _si(sb->blocks_per_group);
@@ -113,12 +117,13 @@ void EXT2_FS::mount() {
     EXT2_DEntry* ext2_entry;
     ext2_entry = new EXT2_DEntry(this, nullptr, root_inode_pos, VFS::Directory, "/");
     root = ext2_entry;
-    ext2_entry->inflate();
-    ext2_entry->load_children();
+    // ext2_entry->inflate();
+    // ext2_entry->load_children();
     
     // _sa(sb_buf.data, 1024);
     //printFS();
     //printInode(ext2_entry->ext2_inode->i);
+    status = VFS::FS_mounted;
 }
 
 EXT2_FS::~EXT2_FS() {
@@ -153,16 +158,19 @@ EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1,
     fs = fs1;
     ext2_fs = fs1;
     parent = parent1;
-    inode = inode;
+    inode = nullptr;
     inode_n = inode_n1;
     type=type1;
     name = std::string(name1);
+    sync = 1;
 }
 
 void EXT2_DEntry::load_children() {
-    if (!ext2_inode) {
+    if (ext2_inode == nullptr || sync == 1) {
         inflate();
     }
+    _log_info("load children");
+
     _error(ext2_inode == nullptr);
     //_si(ext2_inode->size);
 
@@ -177,6 +185,7 @@ void EXT2_DEntry::load_children() {
     _u32 s_pos = 0;
     _u32 next_length = 12;
     DirEntry *temp_str = new DirEntry();
+    children.clear();
     while (true) {
         // _sa(buf.data + s_pos, 20);
         memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
@@ -192,6 +201,9 @@ void EXT2_DEntry::load_children() {
 }
 
 void EXT2_DEntry::inflate() {
+    if (inode != nullptr && sync != 1)
+        return;
+    _log_info("inflate");
     EXT2::Inode* disk_inode = new Inode();
     MM::Buf buf(sizeof(Inode));
     _u32 inode_pos = inode_n;
@@ -201,6 +213,7 @@ void EXT2_DEntry::inflate() {
     memcpy(disk_inode, buf.data, sizeof(Inode));
     ext2_inode = new EXT2_Inode(ext2_fs, disk_inode);
     inode = ext2_inode;
+    sync = 0;
 }
 
 

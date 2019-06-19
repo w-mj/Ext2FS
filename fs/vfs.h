@@ -43,17 +43,26 @@ namespace VFS
         virtual void load_children()=0;
     };
 
+    enum {
+        FS_unmounted = 0,
+        FS_mounted
+    };
+
     class FS {
     public:
         Dev::BlockDevice* dev;  // 设备
-        _u32 flag;  // 安装标志
+        // _u32 flag;  // 安装标志
         _u32 magic;  // 文件系统标志
+
+        _u8 status; // 状态， 0为未挂载，1为已挂载
         
         DEntry* root = nullptr;  // 根目录
         _i32 count;  // 引用计数器
 
         void** xattr;  // 指向扩展属性的指针
         FS(Dev::BlockDevice* dev): dev(dev) {}
+
+        virtual void mount() = 0;
     };
     
     class Inode {
