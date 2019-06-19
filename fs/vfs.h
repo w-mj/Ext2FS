@@ -18,12 +18,15 @@ namespace VFS
     class DEntry {
     public:
         FS* fs;
-        Inode* inode;
+        _u32 inode_n;  // inode编号，懒加载
+        Inode* inode = nullptr;
         DEntry* parent;
+        _u8 type;
 
         std::string name;
-    };
 
+        std::list<DEntry*> children;
+    };
 
     class FS {
     public:

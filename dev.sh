@@ -19,6 +19,9 @@ test_module() {
     set -x
     rm 'bin/test_'$1'.out'
     make
+    if [ ! $? -eq 0 ]; then
+        exit
+    fi
     g++ $path obj/*.o -I. -Iinclude -o 'bin/test_'$1'.out'
     set +x
 

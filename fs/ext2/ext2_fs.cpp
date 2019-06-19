@@ -104,14 +104,21 @@ void EXT2_FS::mount() {
     _sa(sb_buf.data, 1024);
 
     // 第一个索引节点 / 
-    dev->seek(block_to_pos(gdt_list.front()->inode_table));
-    dev->read(sb_buf, sizeof(Inode));
-    dev->read(sb_buf, sizeof(Inode));
-    Inode* root_inode = new Inode();
-    memmove(root_inode, sb_buf.data, sizeof(Inode));
+    // dev->seek(block_to_pos(gdt_list.front()->inode_table));
+    // dev->read(sb_buf, sizeof(Inode));
+    // dev->read(sb_buf, sizeof(Inode));
+    // Inode* root_inode = new Inode();
+    // memmove(root_inode, sb_buf.data, sizeof(Inode));
+    _u32 root_inode_pos = block_to_pos(gdt_list.front()->inode_table) + sizeof(Inode);
+    EXT2_DEntry* ext2_entry;
+    ext2_entry = new EXT2_DEntry(this, nullptr, root_inode_pos, Directory, "/");
+    root = ext2_entry;
+    ext2_entry->inflate();
+    ext2_entry->load_children();
+    
     // _sa(sb_buf.data, 1024);
     printFS();
-    printInode(root_inode);
+    printInode(ext2_entry->ext2_inode->i);
 }
 
 EXT2_FS::~EXT2_FS() {
@@ -122,6 +129,7 @@ EXT2_FS::~EXT2_FS() {
 }
 
 EXT2_Inode::EXT2_Inode(EXT2_FS *fs, EXT2::Inode *i): VFS::Inode(fs) {
+    this->i = i;
     ino = 0;
     counter = 0;
     mode = i->mode;
@@ -138,4 +146,62 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, EXT2::Inode *i): VFS::Inode(fs) {
     blocks = i->blocks;
     bytes = 0;
     sock = 1;
+}
+
+EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1, 
+            _u32 inode_n1, _u8 type1, const std::string& name1) {
+    fs = fs1;
+    ext2_fs = fs1;
+    parent = parent1;
+    inode = inode;
+    inode_n = inode_n1;
+    type=type1;
+    name = std::string(name1);
+}
+
+void EXT2_DEntry::load_children() {
+    if (!ext2_inode) {
+        inflate();
+    }
+    _error(ext2_inode == nullptr);
+    _si(ext2_inode->size);
+
+    Dev::BlockDevice* dev = ext2_fs->dev;
+    MM::Buf buf(ext2_fs->block_size);
+
+    _u32 data_block_pos = ext2_fs->block_to_pos(ext2_inode->i->block[0]);
+    dev->seek(data_block_pos);
+    dev->read(buf, ext2_fs->block_size);
+    // _sa(buf.data, ext2_fs->block_size);
+
+    _u32 s_pos = 0;
+    _u32 next_length = 12;
+    DirEntry *temp_str = new DirEntry();
+    while (true) {
+        memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
+        if (temp_str->rec_len == 0)
+            break;
+        EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
+                temp_str->inode, temp_str->file_type, 
+                std::string((char*)temp_str->name, temp_str->name_len));
+        // std::cout << sub->name << " " << sub->inode_n << std::endl;
+        s_pos += temp_str->rec_len;
+    }
+}
+
+void EXT2_DEntry::inflate() {
+    EXT2::Inode* disk_inode = new Inode();
+    MM::Buf buf(sizeof(Inode));
+    _u32 inode_pos = inode_n;
+    _si(inode_pos);
+    fs->dev->seek(inode_pos);
+    fs->dev->read(buf, sizeof(Inode));
+    memcpy(disk_inode, buf.data, sizeof(Inode));
+    ext2_inode = new EXT2_Inode(ext2_fs, disk_inode);
+    inode = ext2_inode;
+}
+
+
+EXT2_DEntry::~EXT2_DEntry() {
+    delete inode;
 }
