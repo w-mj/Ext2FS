@@ -8,13 +8,15 @@ namespace EXT2 {
 
 
 class EXT2_FS: public VFS::FS {
-    std::list<GroupDescriptor*> gdt_list;
-    SuperBlock* sb;
 
     void printFS();
     void printInode(Inode*);
 public:
     int block_to_pos(int block);
+    int inode_to_pos(int inode_n);
+
+    SuperBlock* sb;
+    std::list<GroupDescriptor*> gdt_list;
 
     _u32 block_size;
     EXT2_FS(Dev::BlockDevice* dev);
@@ -24,9 +26,12 @@ public:
 
 class EXT2_Inode: public VFS::Inode {
 public:
-    EXT2_Inode(EXT2_FS*, EXT2::Inode*);
+    EXT2_Inode(EXT2_FS*, _u32 n, EXT2::Inode*);
+    _u32 inode_n;
     EXT2::Inode* i;
-    void print_Inode();
+    void print();
+
+    ~EXT2_Inode();
 
 };
 
