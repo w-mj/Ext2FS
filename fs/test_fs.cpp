@@ -56,8 +56,9 @@ VFS::DEntry *cd(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
         } else {
             if ((*it)->type != VFS::Directory) {
                 cout << cmdd[1] << " is not a directory." << endl;
+            } else {
+                ans = *it;
             }
-            ans = *it;
         }
     }
     // if (cwd != ans)

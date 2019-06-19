@@ -92,5 +92,15 @@ namespace VFS
         void create(DEntry*, int mode);  // 为与目录项相关联的普通文件创建一个索引节点
 
     };
+
+
+    /**
+     * 打开的文件
+     */
+    class File {
+    public:
+        DEntry* dentry;
+        File(DEntry *d, Inode *i);
+    };
     
 }; // namespace VFS

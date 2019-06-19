@@ -4,8 +4,10 @@
 #include "fs/vfs.h"
 #include "dev/block_dev.h"
 #include "ext2_disk_stru.h"
+#include "ext2_inode.h"
 namespace EXT2 {
 
+class EXT2_Inode;
 
 class EXT2_FS: public VFS::FS {
 
@@ -24,16 +26,6 @@ public:
     ~EXT2_FS();
 };
 
-class EXT2_Inode: public VFS::Inode {
-public:
-    EXT2_Inode(EXT2_FS*, _u32 n, EXT2::Inode*);
-    _u32 inode_n;
-    EXT2::Inode* i;
-    void print();
-
-    ~EXT2_Inode();
-
-};
 
 class EXT2_DEntry: public VFS::DEntry {
 private:

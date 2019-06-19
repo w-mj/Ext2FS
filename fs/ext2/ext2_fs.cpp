@@ -47,30 +47,6 @@ void EXT2_FS::printFS() {
     }
 }
 
-void EXT2_Inode::print() {
-
-    using namespace std;
-    cout << "\nInode:  " << inode_n << endl;
-    cout << "文件类型和访问权限 " << i->mode << mode_to_str(i->mode) << endl;
-    cout << "拥有者 " << i->uid << endl;
-    cout << "文件长度 " << i->size << endl;
-    cout << "最后一次访问时间 " << i->atime << endl;
-    cout << "索引节点最后改变的时间 " << i->ctime << endl;
-    cout << "文件内容最后改变的时间 " << i->mtime << endl;
-    cout << "文件删除的时间 " << i->dtime << endl;
-    cout << "组id " << i->gid << endl;
-    cout << "硬链接计数器 " << i->links_count << endl;
-    cout << "文件的数据块数 " << i->blocks << endl;
-    cout << "文件标志 " << i->flags << endl;
-    cout << "文件版本 " << i->generation << endl;
-    cout << "文件访问控制列表 " << i->file_acl << endl;
-    cout << "目录访问控制列表 " << i->dir_acl << endl;
-    cout << "片地址 " << i->faddr << endl;
-    cout << "数据块指针 ";
-    for (int j = 0; j < i->blocks;j++)
-        cout << i->block[j] << " ";
-    cout << endl;
-}
 
 int EXT2_FS::block_to_pos(int block) {
     // _si(block);
@@ -147,26 +123,7 @@ EXT2_FS::~EXT2_FS() {
     delete sb;
 }
 
-EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
-    this->i = i;
-    ino = 0;
-    counter = 0;
-    mode = i->mode;
-    nlink = i->links_count;
-    uid = i->uid;
-    gid = i->gid;
-    dev = fs->dev;
-    size = i->size;
-    atime = i->atime;
-    mtime = i->mtime;
-    ctime = i->ctime;
-    blkbits = 0;
-    version = i->generation;
-    blocks = i->blocks;
-    bytes = 0;
-    sock = 1;
-    inode_n = n;
-}
+
 
 EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1, 
             _u32 inode_n1, _u8 type1, const std::string& name1) {
@@ -192,29 +149,32 @@ void EXT2_DEntry::load_children() {
     Dev::BlockDevice* dev = ext2_fs->dev;
     MM::Buf buf(ext2_fs->block_size);
 
-    _u32 data_block_pos = ext2_fs->block_to_pos(ext2_inode->i->block[0]);
-    dev->seek(data_block_pos);
-    dev->read(buf, ext2_fs->block_size);
-    // _sa(buf.data, ext2_fs->block_size);
-
-    _u32 s_pos = 0;
-    _u32 next_length = 12;
     DirEntry *temp_str = new DirEntry();
     for (auto x: children)
         delete x;
     children.clear();
-    while (true) {
-        // _sa(buf.data + s_pos, 20);
-        memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
-        if (temp_str->rec_len == 0)
-            break;
-        EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
-                temp_str->inode - 1, temp_str->file_type, 
-                std::string((char*)temp_str->name, temp_str->name_len));
-        children.push_back(sub);
-        // std::cout << sub->name << " " << sub->inode_n << std::endl;
-        s_pos += temp_str->rec_len;
+
+    for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
+        _u32 data_block_pos = ext2_fs->block_to_pos(ext2_inode->i->block[i]);
+        dev->seek(data_block_pos);
+        dev->read(buf, ext2_fs->block_size);
+        // _sa(buf.data, ext2_fs->block_size);
+        _u32 s_pos = 0;
+        _u32 next_length = 12;
+        while (true) {
+            // _sa(buf.data + s_pos, 20);
+            memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
+            if (temp_str->rec_len == 0)
+                break;
+            EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
+                    temp_str->inode - 1, temp_str->file_type, 
+                    std::string((char*)temp_str->name, temp_str->name_len));
+            children.push_back(sub);
+            // std::cout << sub->name << " " << sub->inode_n << std::endl;
+            s_pos += temp_str->rec_len;
+        }
     }
+    
 }
 
 void EXT2_DEntry::inflate() {
@@ -239,6 +199,3 @@ EXT2_DEntry::~EXT2_DEntry() {
     delete inode;
 }
 
-EXT2_Inode::~EXT2_Inode() {
-    delete i;
-}
