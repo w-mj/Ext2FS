@@ -1,6 +1,9 @@
 #include "ext2_inode.h"
 #include "stat.h"
+#include "delog/delog.h"
+#include "mm/buf.h"
 #include <iostream>
+#include <cstring>
 using namespace EXT2;
 
 void EXT2_Inode::print() {
@@ -46,8 +49,102 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     bytes = 0;
     sock = 1;
     inode_n = n;
+    ext2_fs = fs;
 }
 
 EXT2_Inode::~EXT2_Inode() {
     delete i;
+}
+
+EXT2_Inode::iterator::iterator(EXT2_Inode* i, int p) {
+    inode = i;
+    pos_0 = p;
+}
+
+EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
+    return operator++();
+}
+
+EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
+    _u32 cnt_in_data_block = inode->ext2_fs->block_size / 4;
+    if (pos_0 < 12) {
+        // 直接寻址
+        pos_0++;
+    } else if (pos_0 == 12) {
+        // 一次间址
+        if (pos_1 < cnt_in_data_block) {
+            pos_1++;
+        } else {
+            pos_1 = 0;
+            pos_2++;
+        }
+    } else if (pos_0 == 13) {
+        // 两次间址
+        if (pos_2 < cnt_in_data_block) {
+            pos_2++;
+        } else if (pos_1 < cnt_in_data_block) {
+            pos_2 = 0;
+            pos_1++;
+        } else {
+            pos_2 = 0;
+            pos_1 = 0;
+            pos_0++;
+        }
+    } else if (pos_0 == 14) {
+        // 三次间址
+        if (pos_3 < cnt_in_data_block) {
+            pos_3++;
+        } else if (pos_2 < cnt_in_data_block) {
+            pos_3 = 0;
+            pos_2++;
+        } else if (pos_1 < cnt_in_data_block) {
+            pos_3 = 0;
+            pos_2 = 0;
+            pos_1++;
+        } else {
+            pos_3 = 0;
+            pos_2 = 0;
+            pos_1 = 0;
+            pos_0++;
+        }
+    }
+}
+
+bool
+EXT2_Inode::iterator::operator==(const iterator& ano) const {
+    _error(inode != ano.inode);
+    return 
+        pos_0 == ano.pos_0 &&
+        pos_1 == ano.pos_1 &&
+        pos_2 == ano.pos_2 &&
+        pos_3 == ano.pos_3;
+}
+
+int EXT2_Inode::iterator::operator*() const {
+    if (pos_0 < 12)
+        return inode->i->block[pos_0];
+    MM::Buf buf(inode->ext2_fs->block_size);
+    EXT2_FS* fs = inode->ext2_fs;
+    _u32 ans;
+
+    fs->dev->seek(fs->block_to_pos(inode->i->block[pos_0]));
+    fs->dev->read(buf, fs->block_size);
+    memmove(&ans, buf.data + pos_1 * 4, 4);
+    if (pos_0 == 12) {
+        return ans;
+    }
+
+    fs->dev->seek(fs->block_to_pos(ans));
+    fs->dev->read(buf, fs->block_size);
+    memmove(&ans, buf.data + pos_2 * 4, 4);
+    if (pos_0 == 13) {
+        return ans;
+    }
+
+    fs->dev->seek(fs->block_to_pos(ans));
+    fs->dev->read(buf, fs->block_size);
+    memmove(&ans, buf.data + pos_3 * 4, 4);
+    if (pos_0 == 14) {
+        return ans;
+    }
 }
