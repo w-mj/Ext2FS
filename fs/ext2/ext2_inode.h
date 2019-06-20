@@ -12,11 +12,15 @@ namespace EXT2
         class iterator {
             int pos_0=0, pos_1=0, pos_2=0, pos_3=0;
             EXT2_Inode* inode;
-            iterator(EXT2_Inode* i, int p);
+        public:
+            iterator(EXT2_Inode* i);
             iterator& operator++();
             iterator& operator++(int);
             bool operator==(const iterator& ano) const;
+            bool operator!=(const iterator& ano) const;
             int operator*() const ;
+
+            friend class EXT2_Inode;
         };
 
         _u32 inode_n;
@@ -25,6 +29,9 @@ namespace EXT2
 
         EXT2_Inode(EXT2_FS*, _u32, EXT2::Inode*);
         void print();
+
+        iterator begin();
+        iterator end();
         ~EXT2_Inode();
 
 };

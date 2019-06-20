@@ -52,13 +52,43 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     ext2_fs = fs;
 }
 
+EXT2_Inode::iterator EXT2_Inode::begin() {
+    iterator it(this);
+    return it;
+}
+
+EXT2_Inode::iterator EXT2_Inode::end() {
+    iterator it(this);
+    it.pos_0 = i->blocks;
+    _u32 t = i->blocks;
+    if (t <= 12) {
+        return it;
+    } 
+    _u32 cnt_in_data_block = ext2_fs->block_size / 4;
+    t -= 12;
+    if (t < cnt_in_data_block ) {
+        it.pos_1 = t;
+        return it;
+    }
+    t -= cnt_in_data_block;
+    if (t < cnt_in_data_block * cnt_in_data_block) {
+        it.pos_1 = t / cnt_in_data_block;
+        it.pos_2 = t % cnt_in_data_block;
+        return it;
+    }
+    t -= cnt_in_data_block * cnt_in_data_block;
+    it.pos_1 = t / (cnt_in_data_block * cnt_in_data_block);
+    it.pos_2 = t / cnt_in_data_block;
+    it.pos_3 = t % cnt_in_data_block;
+    return it;
+}
+
 EXT2_Inode::~EXT2_Inode() {
     delete i;
 }
 
-EXT2_Inode::iterator::iterator(EXT2_Inode* i, int p) {
+EXT2_Inode::iterator::iterator(EXT2_Inode* i) {
     inode = i;
-    pos_0 = p;
 }
 
 EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
@@ -108,6 +138,7 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
             pos_0++;
         }
     }
+    return *this;
 }
 
 bool
@@ -120,9 +151,16 @@ EXT2_Inode::iterator::operator==(const iterator& ano) const {
         pos_3 == ano.pos_3;
 }
 
+bool
+EXT2_Inode::iterator::operator!=(const iterator& ano) const {
+    return !operator==(ano);
+}
+
+
 int EXT2_Inode::iterator::operator*() const {
     if (pos_0 < 12)
         return inode->i->block[pos_0];
+
     MM::Buf buf(inode->ext2_fs->block_size);
     EXT2_FS* fs = inode->ext2_fs;
     _u32 ans;
@@ -147,4 +185,5 @@ int EXT2_Inode::iterator::operator*() const {
     if (pos_0 == 14) {
         return ans;
     }
+    return pos_0;
 }

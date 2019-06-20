@@ -153,8 +153,8 @@ void EXT2_DEntry::load_children() {
     for (auto x: children)
         delete x;
     children.clear();
-
-    for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
+    // for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
+    for (int i: *ext2_inode) {
         _u32 data_block_pos = ext2_fs->block_to_pos(ext2_inode->i->block[i]);
         dev->seek(data_block_pos);
         dev->read(buf, ext2_fs->block_size);
@@ -174,7 +174,6 @@ void EXT2_DEntry::load_children() {
             s_pos += temp_str->rec_len;
         }
     }
-    
 }
 
 void EXT2_DEntry::inflate() {
