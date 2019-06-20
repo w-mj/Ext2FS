@@ -2,6 +2,7 @@
 #include "mm/buf.h"
 #include "delog/delog.h"
 #include "stat.h"
+#include "bits.h"
 
 #include <cstring>
 #include <iostream>
@@ -114,6 +115,32 @@ void EXT2_FS::mount() {
     printFS();
     //printInode(ext2_entry->ext2_inode->i);
     status = VFS::FS_mounted;
+}
+
+_u32 EXT2_FS::alloc_inode() {
+    GroupDescriptor* gd = nullptr;
+    for (GroupDescriptor* gdd: gdt_list) {
+        if (gdd->free_inodes_count > 0) {
+            gd = gdd;
+            break;
+        }
+    }
+    if (gd == nullptr) {
+        _log_info("No free inode.");
+        return 0;
+    }
+    MM::Buf buf(block_size);
+    dev->seek(block_to_pos(gd->inode_bitmap));
+    dev->read(buf, block_size);
+    _sa(buf.data, block_size);
+    for (int i = 0; i < block_size; i++) {
+        if (buf.data[i] != (char)0xff) {
+            int t = lowest_0(buf.data[i]);
+            buf.data[i] |= _BITS_SIZE(t);
+            return t + i * 8;
+        }
+    }
+    return 0;
 }
 
 EXT2_FS::~EXT2_FS() {

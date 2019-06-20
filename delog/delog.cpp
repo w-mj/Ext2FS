@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "delog.h"
+#include "bits.h"
 #define wmj_null (_I)-1
 
 #define _chkargc(n, info, _label_END) do{\
