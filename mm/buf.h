@@ -4,11 +4,11 @@
 namespace MM {
     class Buf {
     public:
-        char* data = nullptr;
+        _u8* data = nullptr;
         Buf(_u32 size) {
-            data = new char[size];
+            data = new _u8[size];
         }
-        char* raw() {
+        _u8* raw() {
             return data;
         }
         ~Buf() {

@@ -23,12 +23,18 @@ namespace EXT2 {
         std::list<GroupDescriptor*> gdt_list;
 
         _u32 block_size;
+        _u32 group_cnt;
 
         _u32 alloc_inode();
+        _u32 alloc_block();
+
+        void write_super();
+        void write_gdt();
+        void write_inode_bitmap(GroupDescriptor*);
+
         EXT2_FS(Dev::BlockDevice* dev);
         void mount();
         ~EXT2_FS();
     };
-
 
 }

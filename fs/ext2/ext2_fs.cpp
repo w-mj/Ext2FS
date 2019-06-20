@@ -85,7 +85,7 @@ void EXT2_FS::mount() {
     block_size = 1024 * (1 << sb->log_block_size);
     dev->seek(block_size + 1024);  // 指向GDT
 
-    int group_cnt = 8 * sb->blocks_count / sb->blocks_per_group;
+    group_cnt = 8 * sb->blocks_count / sb->blocks_per_group;
     for (int i = 0; i < group_cnt; i++) {
         GroupDescriptor* gtp = new GroupDescriptor();
         dev->read(sb_buf, sizeof(GroupDescriptor));
@@ -137,10 +137,69 @@ _u32 EXT2_FS::alloc_inode() {
         if (buf.data[i] != (char)0xff) {
             int t = lowest_0(buf.data[i]);
             buf.data[i] |= _BITS_SIZE(t);
+            
+            gd->free_inodes_count--;          
             return t + i * 8;
         }
     }
     return 0;
+}
+
+_u32 EXT2_FS::alloc_block() {
+    GroupDescriptor* gd = nullptr;
+    for (GroupDescriptor* gdd: gdt_list) {
+        if (gdd->free_blocks_count > 0) {
+            gd = gdd;
+            break;
+        }
+    }
+    if (gd == nullptr) {
+        _log_info("No free data block.");
+        return 0;
+    }
+    MM::Buf buf(block_size);
+    dev->seek(block_to_pos(gd->block_bitmap));
+    dev->read(buf, block_size);
+    _sa(buf.data, block_size);
+    for (int i = 0; i < block_size; i++) {
+        if (buf.data[i] != (char)0xff) {
+            int t = lowest_0(buf.data[i]);
+            buf.data[i] |= _BITS_SIZE(t);
+            gd->free_blocks_count--;         
+            return t + i * 8;
+        }
+    }
+    return 0;
+}
+
+void EXT2_FS::write_super() {
+    _u32 super_pos = 1;
+    MM::Buf buf(sizeof(SuperBlock));
+    memcpy(buf.data, sb, sizeof(SuperBlock));
+    for (auto x: gdt_list) {
+        dev->seek(super_pos);
+        dev->write(buf, sizeof(SuperBlock));
+        super_pos += sb->blocks_per_group;
+    }
+}
+
+void EXT2_FS::write_gdt() {
+    _u32 super_pos = 2;
+    MM::Buf buf(gdt_list.size() * sizeof(GroupDescriptor));
+    _u32 s_pos = 0;
+    for (auto x: gdt_list) {
+        memcpy(buf.data + s_pos, x, sizeof(GroupDescriptor));
+        s_pos += sizeof(GroupDescriptor);
+    }
+    for (auto x: gdt_list) {
+        dev->seek(super_pos);
+        dev->write(buf, sizeof(SuperBlock));
+        super_pos += sb->blocks_per_group;
+    }
+}
+
+void EXT2_FS::write_inode_bitmap(EXT2::GroupDescriptor* gd) {
+    
 }
 
 EXT2_FS::~EXT2_FS() {
