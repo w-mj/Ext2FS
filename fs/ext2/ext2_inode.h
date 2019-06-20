@@ -10,7 +10,7 @@ namespace EXT2
     class EXT2_Inode: public VFS::Inode {
     public:
         class iterator {
-            int pos_0=0, pos_1=0, pos_2=0, pos_3=0;
+            int index = 1;
             EXT2_Inode* inode;
         public:
             iterator(EXT2_Inode* i);
@@ -29,8 +29,10 @@ namespace EXT2
 
         EXT2_Inode(EXT2_FS*, _u32, EXT2::Inode*);
         void print();
-
-        _u32 alloc_inode();
+        
+        // 返回该文件的第b个字节所在块的块号
+        _u32 byte_in_block(_u32 b);
+        _u32 nth_block(_u32 n);
 
         iterator begin();
         iterator end();

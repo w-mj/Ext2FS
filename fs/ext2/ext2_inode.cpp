@@ -52,6 +52,47 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     ext2_fs = fs;
 }
 
+_u32 EXT2_Inode::byte_in_block(_u32 b) {
+    _u32 ans = nth_block(b / ext2_fs->block_size);
+
+}
+
+_u32 EXT2_Inode::nth_block(_u32 n) {
+    if (n == 0 || (n - 1) * ext2_fs->block_size > i->size)
+        return 0;
+    n--;// n从1开始计数
+    if (n < 12)
+        return i->block[n];
+    _u32 ans;
+    _u32 blocks_in_block = ext2_fs->block_size / 4;
+    MM::Buf buf(ext2_fs->block_size);
+    if (n < 12 + blocks_in_block) {
+        ext2_fs->dev->read(buf, ext2_fs->block_to_pos(i->block[12]), ext2_fs->block_size);
+        n -= 12;
+        memcpy(&ans, buf.data + n, 4);
+        return ans;
+    }
+    if (n < 12 + blocks_in_block + blocks_in_block * blocks_in_block) {
+        ext2_fs->dev->read(buf, ext2_fs->block_to_pos(i->block[13]), ext2_fs->block_size);
+        n -= 12;  
+        memcpy(&ans, buf.data + (n / blocks_in_block), 4);
+        ext2_fs->dev->read(buf, ext2_fs->block_to_pos(ans), ext2_fs->block_size); 
+        memcpy(&ans, buf.data + (n % blocks_in_block), 4);
+        return ans;
+    } else {
+        ext2_fs->dev->read(buf, ext2_fs->block_to_pos(i->block[14]), ext2_fs->block_size);
+        n -= 12;  
+        memcpy(&ans, buf.data + (n / (blocks_in_block * blocks_in_block)), 4);
+        ext2_fs->dev->read(buf, ext2_fs->block_to_pos(ans), ext2_fs->block_size); 
+        memcpy(&ans, buf.data + (n / blocks_in_block), 4);
+        ext2_fs->dev->read(buf, ext2_fs->block_to_pos(ans), ext2_fs->block_size); 
+        memcpy(&ans, buf.data + (n % blocks_in_block), 4);
+        return ans;
+    }
+    return 0;
+}
+
+
 EXT2_Inode::iterator EXT2_Inode::begin() {
     iterator it(this);
     return it;
@@ -59,27 +100,7 @@ EXT2_Inode::iterator EXT2_Inode::begin() {
 
 EXT2_Inode::iterator EXT2_Inode::end() {
     iterator it(this);
-    it.pos_0 = i->blocks;
-    _u32 t = i->blocks;
-    if (t <= 12) {
-        return it;
-    } 
-    _u32 cnt_in_data_block = ext2_fs->block_size / 4;
-    t -= 12;
-    if (t < cnt_in_data_block ) {
-        it.pos_1 = t;
-        return it;
-    }
-    t -= cnt_in_data_block;
-    if (t < cnt_in_data_block * cnt_in_data_block) {
-        it.pos_1 = t / cnt_in_data_block;
-        it.pos_2 = t % cnt_in_data_block;
-        return it;
-    }
-    t -= cnt_in_data_block * cnt_in_data_block;
-    it.pos_1 = t / (cnt_in_data_block * cnt_in_data_block);
-    it.pos_2 = t / cnt_in_data_block;
-    it.pos_3 = t % cnt_in_data_block;
+    it.index = i->blocks - 1;
     return it;
 }
 
@@ -92,98 +113,28 @@ EXT2_Inode::iterator::iterator(EXT2_Inode* i) {
 }
 
 EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
-    return operator++();
+    index++;
+    return *this;
 }
 
 EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
-    _u32 cnt_in_data_block = inode->ext2_fs->block_size / 4;
-    if (pos_0 < 12) {
-        // 直接寻址
-        pos_0++;
-    } else if (pos_0 == 12) {
-        // 一次间址
-        if (pos_1 < cnt_in_data_block) {
-            pos_1++;
-        } else {
-            pos_1 = 0;
-            pos_2++;
-        }
-    } else if (pos_0 == 13) {
-        // 两次间址
-        if (pos_2 < cnt_in_data_block) {
-            pos_2++;
-        } else if (pos_1 < cnt_in_data_block) {
-            pos_2 = 0;
-            pos_1++;
-        } else {
-            pos_2 = 0;
-            pos_1 = 0;
-            pos_0++;
-        }
-    } else if (pos_0 == 14) {
-        // 三次间址
-        if (pos_3 < cnt_in_data_block) {
-            pos_3++;
-        } else if (pos_2 < cnt_in_data_block) {
-            pos_3 = 0;
-            pos_2++;
-        } else if (pos_1 < cnt_in_data_block) {
-            pos_3 = 0;
-            pos_2 = 0;
-            pos_1++;
-        } else {
-            pos_3 = 0;
-            pos_2 = 0;
-            pos_1 = 0;
-            pos_0++;
-        }
-    }
+    index++;
     return *this;
 }
 
 bool
 EXT2_Inode::iterator::operator==(const iterator& ano) const {
     _error(inode != ano.inode);
-    return 
-        pos_0 == ano.pos_0 &&
-        pos_1 == ano.pos_1 &&
-        pos_2 == ano.pos_2 &&
-        pos_3 == ano.pos_3;
+    return index == ano.index;
 }
 
 bool
 EXT2_Inode::iterator::operator!=(const iterator& ano) const {
-    return !operator==(ano);
+    _error(inode != ano.inode);
+    return index != ano.index;
 }
 
 
 int EXT2_Inode::iterator::operator*() const {
-    if (pos_0 < 12)
-        return inode->i->block[pos_0];
-
-    MM::Buf buf(inode->ext2_fs->block_size);
-    EXT2_FS* fs = inode->ext2_fs;
-    _u32 ans;
-
-    fs->dev->seek(fs->block_to_pos(inode->i->block[pos_0]));
-    fs->dev->read(buf, fs->block_size);
-    memmove(&ans, buf.data + pos_1 * 4, 4);
-    if (pos_0 == 12) {
-        return ans;
-    }
-
-    fs->dev->seek(fs->block_to_pos(ans));
-    fs->dev->read(buf, fs->block_size);
-    memmove(&ans, buf.data + pos_2 * 4, 4);
-    if (pos_0 == 13) {
-        return ans;
-    }
-
-    fs->dev->seek(fs->block_to_pos(ans));
-    fs->dev->read(buf, fs->block_size);
-    memmove(&ans, buf.data + pos_3 * 4, 4);
-    if (pos_0 == 14) {
-        return ans;
-    }
-    return pos_0;
+    return inode->nth_block(index);
 }

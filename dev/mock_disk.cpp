@@ -5,19 +5,20 @@
 
 using namespace Dev;
 
-_u32 MockDisk::read(MM::Buf& buf, _u32 size) {
+_u32 MockDisk::read(MM::Buf& buf, _u32 pos, _u32 size) {
     //std::cout << "\n开始读文件"<<ftell(f)<<std::endl;
-    fread(buf.data, size, 1, f);
+    this->seek(pos);
     // f.read(buf.data, size);
     // for (int i = 0; i < size; i++)
     //     std::cout << (int)buf.data[i];
-    return size;
+    return fread(buf.data, size, 1, f);
 }
 
-_u32 MockDisk::write(MM::Buf& buf, _u32 size) {
-    fwrite(buf.data, size, 1, f);
+_u32 MockDisk::write(MM::Buf& buf, _u32 pos, _u32 size) {
+    seek(pos);
+    
     // f.write(buf.data, size);
-    return size;
+    return fwrite(buf.data, size, 1, f);
 }
 
 _u32 MockDisk::tell() {

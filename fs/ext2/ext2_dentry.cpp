@@ -36,8 +36,7 @@ void EXT2_DEntry::load_children() {
     // for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
     for (int i: *ext2_inode) {
         _u32 data_block_pos = ext2_fs->block_to_pos(ext2_inode->i->block[i]);
-        dev->seek(data_block_pos);
-        dev->read(buf, ext2_fs->block_size);
+        dev->read(buf, data_block_pos, ext2_fs->block_size);
         // _sa(buf.data, ext2_fs->block_size);
         _u32 s_pos = 0;
         _u32 next_length = 12;
@@ -64,8 +63,7 @@ void EXT2_DEntry::inflate() {
     MM::Buf buf(sizeof(Inode));
     _u32 inode_pos = ext2_fs->inode_to_pos(inode_n);
     _si(inode_pos);
-    fs->dev->seek(inode_pos);
-    fs->dev->read(buf, sizeof(Inode));
+    fs->dev->read(buf, inode_pos, sizeof(Inode));
     memcpy(disk_inode, buf.data, sizeof(Inode));
     ext2_inode = new EXT2_Inode(ext2_fs, inode_n, disk_inode);
     ext2_inode->print();

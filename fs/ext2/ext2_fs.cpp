@@ -68,9 +68,9 @@ int EXT2_FS::inode_to_pos(int inode_n) {
 
 void EXT2_FS::mount() {
     sb = new SuperBlock();
-    dev->seek(1024);  // 跳过引导块
+    // dev->seek(1024);  // 跳过引导块
     MM::Buf sb_buf(1024);
-    dev->read(sb_buf, 1024);  // 先读1k的超级块
+    dev->read(sb_buf, 1024, 1024);  // 先读1k的超级块
     memmove(sb, sb_buf.data, 1024);
 
     magic = sb->magic;
@@ -82,19 +82,20 @@ void EXT2_FS::mount() {
 
     // 1024 * (1 << sb->log_block_size) * 8;
     block_size = 1024 * (1 << sb->log_block_size);
-    dev->seek(block_size + 1024);  // 指向GDT
-
+    // dev->seek(block_size + 1024);  // 指向GDT
+    _u32 read_pos = block_size + 1024;
     group_cnt = 8 * sb->blocks_count / sb->blocks_per_group;
     for (int i = 0; i < group_cnt; i++) {
         GroupDescriptor* gtp = new GroupDescriptor();
-        dev->read(sb_buf, sizeof(GroupDescriptor));
+        dev->read(sb_buf, read_pos, sizeof(GroupDescriptor));
         memmove(gtp, sb_buf.data, sizeof(GroupDescriptor));
         gdt_list.emplace_back(this, gtp, i);
+        read_pos += sizeof(GroupDescriptor);
     }
 
     // 数据块位图
-    dev->seek(block_to_pos(gdt_list.front()->get_gd()->inode_bitmap));
-    dev->read(sb_buf, block_size);
+    // dev->seek());
+    dev->read(sb_buf, block_to_pos(gdt_list.front()->get_gd()->inode_bitmap), block_size);
     // _sa(sb_buf.data, 1024);
 
     // 第一个索引节点 / 
@@ -143,8 +144,7 @@ void EXT2_FS::write_super() {
     MM::Buf buf(sizeof(SuperBlock));
     memcpy(buf.data, sb, sizeof(SuperBlock));
     for (auto x: gdt_list) {
-        dev->seek(super_pos);
-        dev->write(buf, sizeof(SuperBlock));
+        dev->write(buf, super_pos, sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }
 }
@@ -160,8 +160,7 @@ void EXT2_FS::write_gdt() {
         x->write_block_bitmap();
     }
     for (auto x: gdt_list) {
-        dev->seek(super_pos);
-        dev->write(buf, sizeof(SuperBlock));
+        dev->write(buf, super_pos, sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }
 }

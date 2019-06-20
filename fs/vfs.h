@@ -101,10 +101,13 @@ namespace VFS
      */
     class File {
     public:
-        DEntry* dentry;
-        Inode* i;
-        _u16 mode;
-        File(DEntry *d, Inode *i);
+        _u32 pos;
+        _u32 size;
+        _u8 open_mode;
+        virtual _u32 tell()=0;
+        virtual _u32 seek(_u32 pos)=0;
+        virtual _u32 read(_u8*, _u32 size)=0;
+        virtual _u32 write(_u8*, _u32 size)=0;
     };
     
 }; // namespace VFS
