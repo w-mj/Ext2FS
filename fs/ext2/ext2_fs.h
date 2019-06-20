@@ -11,6 +11,7 @@ namespace EXT2 {
 
     class EXT2_Inode;
     class EXT2_DEntry;
+    class EXT2_GD;
 
     class EXT2_FS: public VFS::FS {
 

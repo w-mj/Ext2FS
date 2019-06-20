@@ -34,6 +34,8 @@ namespace EXT2
         _u32 byte_in_block(_u32 b);
         _u32 nth_block(_u32 n);
 
+        void write_inode();
+
         iterator begin();
         iterator end();
 

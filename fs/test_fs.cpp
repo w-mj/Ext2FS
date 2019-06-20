@@ -61,9 +61,11 @@ VFS::DEntry *cd(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
             }
         }
     }
-    // if (cwd != ans)
-    //     delete cwd;
     return ans;
+}
+
+void mkdir(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    cwd->mkdir(cmdd[1]);
 }
 
 int main(void) {
@@ -76,6 +78,9 @@ int main(void) {
     cout << "File System at " << "fs/ext2/fs" << endl;
     string cmd;
     VFS::DEntry *cwd = nullptr;
+
+    fs->mount();
+    cwd = fs->root;
 
     cout << "[umount]$ ";
     while (getline(cin, cmd)) {
@@ -90,6 +95,10 @@ int main(void) {
             ls(cwd, cmdd);
         } else if (cmdd[0] == "cd") {
             cwd = cd(cwd, cmdd);
+        } else if (cmdd[0] == "mkdir") {
+            mkdir(cwd, cmdd);
+        } else if (cmdd[0] == "exit") {
+            break;
         }
         
         if (cwd != nullptr)

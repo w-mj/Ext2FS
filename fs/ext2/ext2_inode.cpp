@@ -54,7 +54,7 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
 
 _u32 EXT2_Inode::byte_in_block(_u32 b) {
     _u32 ans = nth_block(b / ext2_fs->block_size);
-
+    return ans;
 }
 
 _u32 EXT2_Inode::nth_block(_u32 n) {
@@ -92,15 +92,32 @@ _u32 EXT2_Inode::nth_block(_u32 n) {
     return 0;
 }
 
+void EXT2_Inode::write_inode() {
+    _pos();
+    _u32 inode_pos = ext2_fs->inode_to_pos(inode_n);
+    _si(inode_pos);
+    MM::Buf buf(sizeof(EXT2::Inode));
+    memcpy(buf.data, i, sizeof(EXT2::Inode));
+    _sa(buf.data, sizeof(EXT2::Inode));
+    ext2_fs->dev->write(buf, inode_pos, sizeof(EXT2::Inode));
+    memset(buf.data, 0, sizeof(EXT2::Inode));
+    _sa(buf.data, sizeof(EXT2::Inode));
+    ext2_fs->dev->read(buf, inode_pos, sizeof(EXT2::Inode));
+    _sa(buf.data, sizeof(EXT2::Inode));
+    
+}
+
 
 EXT2_Inode::iterator EXT2_Inode::begin() {
     iterator it(this);
+    _si(it.index);
     return it;
 }
 
 EXT2_Inode::iterator EXT2_Inode::end() {
     iterator it(this);
-    it.index = i->blocks - 1;
+    it.index = i->blocks;
+    _si(it.index);
     return it;
 }
 
@@ -136,5 +153,9 @@ EXT2_Inode::iterator::operator!=(const iterator& ano) const {
 
 
 int EXT2_Inode::iterator::operator*() const {
-    return inode->nth_block(index);
+    // _pos();
+    // fflush(stdout);
+    int ans = inode->nth_block(index);
+    // std::cout <<ans << std::endl;
+    return ans;
 }

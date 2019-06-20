@@ -89,7 +89,7 @@ void EXT2_FS::mount() {
         GroupDescriptor* gtp = new GroupDescriptor();
         dev->read(sb_buf, read_pos, sizeof(GroupDescriptor));
         memmove(gtp, sb_buf.data, sizeof(GroupDescriptor));
-        gdt_list.emplace_back(this, gtp, i);
+        gdt_list.push_back(new EXT2_GD(this, gtp, i));
         read_pos += sizeof(GroupDescriptor);
     }
 
@@ -105,8 +105,7 @@ void EXT2_FS::mount() {
     // Inode* root_inode = new Inode();
     // memmove(root_inode, sb_buf.data, sizeof(Inode));
     _u32 root_inode_pos = gdt_list.front()->get_gd()->inode_table;
-    EXT2_DEntry* ext2_entry;
-    ext2_entry = new EXT2_DEntry(this, nullptr, 1, VFS::Directory, "/");
+    EXT2_DEntry* ext2_entry = new EXT2_DEntry(this, nullptr, 1, VFS::Directory, "/");
     root = ext2_entry;
     // ext2_entry->inflate();
     // ext2_entry->load_children();
@@ -122,6 +121,7 @@ _u32 EXT2_FS::alloc_inode() {
         _u32 t = gdd->alloc_inode();
         if (t != 0) {
             _si(t);
+            sb->free_inodes_count--;
             return t;
         }
     }
@@ -133,6 +133,7 @@ _u32 EXT2_FS::alloc_block() {
         _u32 t = gdd->alloc_block();
         if (t != 0) {
             _si(t);
+            sb->free_blocks_count--;
             return t;
         }
     }
@@ -143,7 +144,7 @@ void EXT2_FS::write_super() {
     _u32 super_pos = 1;
     MM::Buf buf(sizeof(SuperBlock));
     memcpy(buf.data, sb, sizeof(SuperBlock));
-    for (auto x: gdt_list) {
+    for (EXT2_GD *x: gdt_list) {
         dev->write(buf, super_pos, sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }
@@ -153,13 +154,13 @@ void EXT2_FS::write_gdt() {
     _u32 super_pos = 2;
     MM::Buf buf(gdt_list.size() * sizeof(GroupDescriptor));
     _u32 s_pos = 0;
-    for (auto x: gdt_list) {
+    for (EXT2_GD *x: gdt_list) {
         memcpy(buf.data + s_pos, x->get_gd(), sizeof(GroupDescriptor));
         s_pos += sizeof(GroupDescriptor);
         x->write_inode_bitmap();
         x->write_block_bitmap();
     }
-    for (auto x: gdt_list) {
+    for (EXT2_GD *x: gdt_list) {
         dev->write(buf, super_pos, sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }

@@ -48,11 +48,14 @@ enum {
 #define init_delog(dbgname, logname) do{_Npos_delog(_INIT_INFO_DELOG, dbgname, logname);}while(0)
 #if DELOG_MODE < 2
 #define _debug_info(expstr, m, ...) _pos_delog(_DBG_INFO_DELOG, m, expstr, __VA_ARGS__)
+#define _dbg_log(...) _pos_delog(_DBG_INFO_DELOG, __VA_ARGS__)
 #else
 #define _debug_info(expstr, m, ...) do{}while(0)
+#define _dbg_log(...) do{}while(0)
 #endif
 #define _log_info(...) _Npos_delog(_LOG_INFO_DELOG, __VA_ARGS__)
 #define _reg() _log_info("[%s] run!", __func__)
+
 
 // 打印一段地址空间
 #define _sa(exp, len) _debug_info(mkstr(exp), "a", exp, len)

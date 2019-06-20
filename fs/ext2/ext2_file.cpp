@@ -17,6 +17,7 @@ _u32 EXT2_File::tell() {
 
 _u32 EXT2_File::seek(_u32 pos) {
     this->pos = pos;
+    return pos;
 }
 
 _u32 EXT2_File::read(_u8 *buf, _u32 len) {
