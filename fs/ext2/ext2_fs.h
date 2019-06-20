@@ -6,6 +6,7 @@
 #include "ext2_disk_stru.h"
 #include "ext2_inode.h"
 #include "ext2_dentry.h"
+#include "ext2_group_descriptor.h"
 namespace EXT2 {
 
     class EXT2_Inode;
@@ -20,7 +21,7 @@ namespace EXT2 {
         int inode_to_pos(int inode_n);
 
         SuperBlock* sb;
-        std::list<GroupDescriptor*> gdt_list;
+        std::list<EXT2_GD*> gdt_list;
 
         _u32 block_size;
         _u32 group_cnt;
@@ -30,7 +31,6 @@ namespace EXT2 {
 
         void write_super();
         void write_gdt();
-        void write_inode_bitmap(GroupDescriptor*);
 
         EXT2_FS(Dev::BlockDevice* dev);
         void mount();

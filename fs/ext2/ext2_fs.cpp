@@ -37,14 +37,13 @@ void EXT2_FS::printFS() {
     cout << "文件系统的状态 " << sb->state << endl;
 
     cout << "组描述符表：" << endl;
-    for (GroupDescriptor* gdt: gdt_list) {
-        cout << "块位图块号 " << gdt->block_bitmap << endl;
-        cout << "索引节点位图的块号 " << gdt->inode_bitmap << endl;
-        cout << "第一个索引节点表块的块号 " << gdt->inode_table << endl;
-        cout << "组中空闲块的个数 " << gdt->free_blocks_count << endl;
-        cout << "组中空闲索引节点的个数 " << gdt->free_inodes_count << endl;
-        cout << "组中目录的个数 " << gdt->used_dirs_count << endl;
-
+    for (EXT2_GD* gdt: gdt_list) {
+        cout << "块位图块号 " << gdt->get_gd()->block_bitmap << endl;
+        cout << "索引节点位图的块号 " << gdt->get_gd()->inode_bitmap << endl;
+        cout << "第一个索引节点表块的块号 " << gdt->get_gd()->inode_table << endl;
+        cout << "组中空闲块的个数 " << gdt->get_gd()->free_blocks_count << endl;
+        cout << "组中空闲索引节点的个数 " << gdt->get_gd()->free_inodes_count << endl;
+        cout << "组中目录的个数 " << gdt->get_gd()->used_dirs_count << endl;
     }
 }
 
@@ -64,7 +63,7 @@ int EXT2_FS::inode_to_pos(int inode_n) {
     _error(it == gdt_list.end());
     _error(inode_n > max_inodes_in_group);
 
-    return block_to_pos((*it)->inode_table) + inode_n * sizeof(Inode);
+    return block_to_pos((*it)->get_gd()->inode_table) + inode_n * sizeof(Inode);
 }
 
 void EXT2_FS::mount() {
@@ -90,11 +89,11 @@ void EXT2_FS::mount() {
         GroupDescriptor* gtp = new GroupDescriptor();
         dev->read(sb_buf, sizeof(GroupDescriptor));
         memmove(gtp, sb_buf.data, sizeof(GroupDescriptor));
-        gdt_list.push_back(gtp);
+        gdt_list.emplace_back(this, gtp, i);
     }
 
     // 数据块位图
-    dev->seek(block_to_pos(gdt_list.front()->inode_bitmap));
+    dev->seek(block_to_pos(gdt_list.front()->get_gd()->inode_bitmap));
     dev->read(sb_buf, block_size);
     // _sa(sb_buf.data, 1024);
 
@@ -104,7 +103,7 @@ void EXT2_FS::mount() {
     // dev->read(sb_buf, sizeof(Inode));
     // Inode* root_inode = new Inode();
     // memmove(root_inode, sb_buf.data, sizeof(Inode));
-    _u32 root_inode_pos = gdt_list.front()->inode_table;
+    _u32 root_inode_pos = gdt_list.front()->get_gd()->inode_table;
     EXT2_DEntry* ext2_entry;
     ext2_entry = new EXT2_DEntry(this, nullptr, 1, VFS::Directory, "/");
     root = ext2_entry;
@@ -118,55 +117,22 @@ void EXT2_FS::mount() {
 }
 
 _u32 EXT2_FS::alloc_inode() {
-    GroupDescriptor* gd = nullptr;
-    for (GroupDescriptor* gdd: gdt_list) {
-        if (gdd->free_inodes_count > 0) {
-            gd = gdd;
-            break;
-        }
-    }
-    if (gd == nullptr) {
-        _log_info("No free inode.");
-        return 0;
-    }
-    MM::Buf buf(block_size);
-    dev->seek(block_to_pos(gd->inode_bitmap));
-    dev->read(buf, block_size);
-    _sa(buf.data, block_size);
-    for (int i = 0; i < block_size; i++) {
-        if (buf.data[i] != (char)0xff) {
-            int t = lowest_0(buf.data[i]);
-            buf.data[i] |= _BITS_SIZE(t);
-            
-            gd->free_inodes_count--;          
-            return t + i * 8;
+    for (EXT2_GD* gdd: gdt_list) {
+        _u32 t = gdd->alloc_inode();
+        if (t != 0) {
+            _si(t);
+            return t;
         }
     }
     return 0;
 }
 
 _u32 EXT2_FS::alloc_block() {
-    GroupDescriptor* gd = nullptr;
-    for (GroupDescriptor* gdd: gdt_list) {
-        if (gdd->free_blocks_count > 0) {
-            gd = gdd;
-            break;
-        }
-    }
-    if (gd == nullptr) {
-        _log_info("No free data block.");
-        return 0;
-    }
-    MM::Buf buf(block_size);
-    dev->seek(block_to_pos(gd->block_bitmap));
-    dev->read(buf, block_size);
-    _sa(buf.data, block_size);
-    for (int i = 0; i < block_size; i++) {
-        if (buf.data[i] != (char)0xff) {
-            int t = lowest_0(buf.data[i]);
-            buf.data[i] |= _BITS_SIZE(t);
-            gd->free_blocks_count--;         
-            return t + i * 8;
+    for (EXT2_GD* gdd: gdt_list) {
+        _u32 t = gdd->alloc_block();
+        if (t != 0) {
+            _si(t);
+            return t;
         }
     }
     return 0;
@@ -188,8 +154,10 @@ void EXT2_FS::write_gdt() {
     MM::Buf buf(gdt_list.size() * sizeof(GroupDescriptor));
     _u32 s_pos = 0;
     for (auto x: gdt_list) {
-        memcpy(buf.data + s_pos, x, sizeof(GroupDescriptor));
+        memcpy(buf.data + s_pos, x->get_gd(), sizeof(GroupDescriptor));
         s_pos += sizeof(GroupDescriptor);
+        x->write_inode_bitmap();
+        x->write_block_bitmap();
     }
     for (auto x: gdt_list) {
         dev->seek(super_pos);
@@ -198,9 +166,6 @@ void EXT2_FS::write_gdt() {
     }
 }
 
-void EXT2_FS::write_inode_bitmap(EXT2::GroupDescriptor* gd) {
-    
-}
 
 EXT2_FS::~EXT2_FS() {
     for (auto x: gdt_list) {

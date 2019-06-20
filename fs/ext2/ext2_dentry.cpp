@@ -2,6 +2,7 @@
 #include "delog/delog.h"
 #include "mm/buf.h"
 #include <cstring>
+#include <ctime>
 
 using namespace EXT2;
 EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1, 
@@ -72,8 +73,29 @@ void EXT2_DEntry::inflate() {
     sync = 0;
 }
 
-void EXT2_DEntry::mkdir() {
-    _error(1);
+void EXT2_DEntry::mkdir(std::string& new_name) {
+    _u32 new_i_n = ext2_fs->alloc_inode();
+    _u32 new_b_n = ext2_fs->alloc_block();
+    load_children();
+
+    EXT2::Inode *new_disk_i = new EXT2::Inode();
+    new_disk_i->mode = ext2_inode->mode;
+    new_disk_i->uid = ext2_inode->uid;
+    new_disk_i->size = ext2_fs->block_size;
+    new_disk_i->atime = time(0);
+    new_disk_i->mtime = time(0);
+    new_disk_i->dtime = time(0);
+    new_disk_i->gid = ext2_inode->gid;
+    new_disk_i->links_count = 2;  // . 和父目录中的自己
+    new_disk_i->blocks = 2;
+    new_disk_i->flags = 0;
+    new_disk_i->block[0] = new_b_n;
+    EXT2_Inode *new_i = new EXT2_Inode(ext2_fs, new_i_n, new_disk_i);
+    EXT2_DEntry *new_entry = new EXT2_DEntry(ext2_fs, this, new_i_n, VFS::Directory, new_name);
+    new_entry->ext2_inode = new_i;
+    
+    children.push_back(new_entry);
+
 }
 
 

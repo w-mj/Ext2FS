@@ -20,7 +20,7 @@ namespace EXT2
         void inflate();
         void load_children();
 
-        void mkdir();
+        void mkdir(std::string& new_name);
 
         ~EXT2_DEntry();
     };
