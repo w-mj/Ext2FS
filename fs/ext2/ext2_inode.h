@@ -30,8 +30,11 @@ namespace EXT2
         EXT2_Inode(EXT2_FS*, _u32, EXT2::Inode*);
         void print();
 
+        _u32 alloc_inode();
+
         iterator begin();
         iterator end();
+
         ~EXT2_Inode();
 
 };

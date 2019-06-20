@@ -41,6 +41,8 @@ namespace VFS
 
         virtual void inflate()=0;
         virtual void load_children()=0;
+
+        virtual void mkdir()=0;
     };
 
     enum {
@@ -100,6 +102,8 @@ namespace VFS
     class File {
     public:
         DEntry* dentry;
+        Inode* i;
+        _u16 mode;
         File(DEntry *d, Inode *i);
     };
     
