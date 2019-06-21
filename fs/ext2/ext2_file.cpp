@@ -8,15 +8,26 @@ EXT2_File::EXT2_File(EXT2_DEntry *d, EXT2_Inode *i) {
     ext2_dentry = d;
     ext2_inode = i;
     ext2_fs = i->ext2_fs;
+    type = d->type;
     pos = 0;
     size = i->i->size;
     _dbg_log("打开文件");
     _si(size);
-    // MM::Buf buf(size);
-    // read(buf.data, size);
-    // _sa(buf.data, size);
-    // pos = 0;
 }
+
+EXT2_File::EXT2_File(EXT2_DEntry *d) {
+    if (d->ext2_inode == nullptr)
+        d->inflate();
+    ext2_dentry = d;
+    ext2_inode = d->ext2_inode;
+    ext2_fs = d->ext2_inode->ext2_fs;
+    type = d->type;
+    pos = 0;
+    size = d->ext2_inode->i->size;
+    _dbg_log("打开文件");
+    _si(size);
+}
+
 
 _u32 EXT2_File::tell() {
     return pos;

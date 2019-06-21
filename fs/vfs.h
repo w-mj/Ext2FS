@@ -35,6 +35,7 @@ namespace VFS
      * 一个目录项
      */
     class DEntry {
+        virtual File* get_file()=0;
     public:
         FS* fs;
         _u32 inode_n;  // inode编号，懒加载
@@ -51,7 +52,10 @@ namespace VFS
 
         virtual void mkdir(const std::string& new_name)=0;
         virtual void create(const std::string& new_name)=0;
-        virtual File *open_file(const std::string& name)=0;
+        virtual void unlink(DEntry*)=0;  // 删除子项目，修改自己与子文件夹的引用关系
+        virtual void unlink()=0;  // 删除自己，释放空间
+
+        File *open(const std::string& name);
 
         DEntry* get_child(const std::string& name);
     };
@@ -114,6 +118,7 @@ namespace VFS
     public:
         _u32 pos;
         _u32 size;
+        _u8 type;
         _u8 open_mode;
         virtual _u32 tell()=0;
         virtual _u32 seek(int pos, int whence)=0;

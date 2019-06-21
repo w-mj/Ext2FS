@@ -88,6 +88,7 @@ void EXT2_GD::release_inode(_u32 inode_n) {
         _error_s("inode %d is not in used.", inode_n);
     }
     _clr_bit(inode_bitmap[which_byte], which_bit);
+    gd->free_inodes_count++;
 }
 
 
@@ -101,6 +102,7 @@ void EXT2_GD::release_block(_u32 block_n) {
         _error_s("block %d is not in used.", block_n);
     }
     _clr_bit(block_bitmap[which_byte], which_bit);
+    gd->free_blocks_count++;
 }
 
 

@@ -75,10 +75,13 @@ VFS::DEntry *touch(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 }
 
 VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
-    VFS::File *fe = cwd->open_file(cmdd[1]);
+    VFS::File *fe = cwd->open(cmdd[1]);
     if (fe == nullptr)
         std::cout << "No such file " << cmdd[1] << std::endl;
-    else {
+    else if (fe->type != VFS::RegularFile) {
+        std::cout << cmdd[1] << " is not a regular file." << std::endl;
+        delete fe;
+    } else {
         _si(fe->size);
         char *buf = new char[fe->size];
         fe->read((_u8*)buf, fe->size);
@@ -91,12 +94,27 @@ VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     return cwd;
 }
 
+VFS::DEntry *rm(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    VFS::DEntry *to_del = cwd->get_child(cmdd[cmdd.size() - 1]);
+    if (to_del == nullptr) {
+        std::cout << "No such file " << cmdd[cmdd.size() - 1] << std::endl;
+    } else {
+        if (to_del->type == VFS::Directory && cmdd[1] != "-r") {
+            std::cout << cmdd[cmdd.size() - 1] << " is a directory." << std::endl;
+        } else {
+            cwd->unlink(to_del);
+        }
+    }
+    return cwd;
+}
+
 OP ops[] = {
     {"ls", ls},
     {"cd", cd},
     {"mkdir", mkdir},
     {"touch", touch},
     {"cat", cat},
+    {"rm", rm},
     {"unknown", nullptr}
 };
 

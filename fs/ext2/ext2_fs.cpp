@@ -157,6 +157,7 @@ void EXT2_FS::release_inode(_u32 inode_n, EXT2_GD **ret_gd) {
     _u32 which_group = inode_n / inode_per_group;
     _u32 inode_in_group = inode_n % inode_per_group;
     gdt_list[which_group]->release_inode(inode_in_group);
+    sb->free_inodes_count++;
 }
 
 void EXT2_FS::release_block(_u32 block_n, EXT2_GD **ret_gd) {
@@ -164,6 +165,7 @@ void EXT2_FS::release_block(_u32 block_n, EXT2_GD **ret_gd) {
     _u32 which_group = block_n / block_per_group;
     _u32 block_in_group = block_n % block_per_group;
     gdt_list[which_group]->release_block(block_in_group);
+    sb->free_blocks_count++;
 }
 
 void EXT2_FS::write_super() {

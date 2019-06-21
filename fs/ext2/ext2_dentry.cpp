@@ -40,13 +40,14 @@ void EXT2_DEntry::load_children() {
     // for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
     _sp(*ext2_inode);
     // ext2_inode->print();
+    _u32 all_length = 0;
     for (int i: *ext2_inode) {
         _u32 data_block_pos = ext2_fs->block_to_pos(i);
         dev->read(buf, data_block_pos, ext2_fs->block_size);
         // _sa(buf.data, ext2_fs->block_size);
         _u32 s_pos = 0;
         _u32 next_length = 12;
-        while (true) {
+        while (all_length < ext2_inode->i->size) {
             // _sa(buf.data + s_pos, 20);
             memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
             if (temp_str->rec_len == 0)
@@ -58,6 +59,7 @@ void EXT2_DEntry::load_children() {
             children.push_back(sub);
             // std::cout << sub->name << " " << sub->inode_n << std::endl;
             s_pos += temp_str->rec_len;
+            all_length += temp_str->rec_len;
         }
     }
 }
@@ -204,13 +206,42 @@ void EXT2_DEntry::create(const std::string& name) {
     ext2_fs->write_super();
 }
 
-VFS::File *EXT2_DEntry::open_file(const std::string& name) {
-    EXT2_DEntry *ans = dynamic_cast<EXT2_DEntry*>(get_child(name));
-    if (ans == nullptr)
-        return nullptr;
-    if (ans->ext2_inode == nullptr)
-        ans->inflate();
-    return new EXT2_File(ans, ans->ext2_inode);
+VFS::File *EXT2_DEntry::get_file() {
+    return new EXT2_File(this);
+}
+
+void EXT2_DEntry::unlink(VFS::DEntry *d) {
+    load_children();
+    if (d->type == VFS::Directory) {
+        ext2_inode->i->links_count--;
+        ext2_inode->write_inode();
+    }
+    d->unlink();  // 删除子项目
+    children.remove(d);
+    write_children();
+}
+
+
+void EXT2_DEntry::unlink() {
+    switch (type) {
+        case VFS::Directory: {
+            load_children();
+            for (auto x: children) {
+                if (x->name != "." && x->name != "..")
+                    x->unlink();  // 这个文件夹本身也要被删除了，因此不需要修改自己的inode和数据块，直接删除子节点
+            }
+        }  // 没有break
+        case VFS::RegularFile: {
+            EXT2_File f(this);
+            f.resize(0);
+            ext2_fs->release_inode(inode_n);
+            ext2_fs->write_gdt();
+            ext2_fs->write_super();
+        }
+        break;  
+        default:
+            _error_s(1, "unknown type %d.", type);
+    }
 }
 
 

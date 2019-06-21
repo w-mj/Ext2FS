@@ -15,6 +15,7 @@ namespace EXT2 {
         EXT2_Inode *ext2_inode;
         EXT2_FS *ext2_fs;
     public:
+        EXT2_File(EXT2_DEntry *);
         EXT2_File(EXT2_DEntry *, EXT2_Inode *);
         _u32 tell();
         _u32 seek(int pos, int whence);
