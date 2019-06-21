@@ -54,7 +54,7 @@ void EXT2_DEntry::load_children() {
             EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
                     temp_str->inode, temp_str->file_type, 
                     std::string((char*)temp_str->name, temp_str->name_len));
-            _si(temp_str->rec_len);
+            // _si(temp_str->rec_len);
             children.push_back(sub);
             // std::cout << sub->name << " " << sub->inode_n << std::endl;
             s_pos += temp_str->rec_len;
@@ -189,7 +189,7 @@ void EXT2_DEntry::create(const std::string& name) {
     new_disk_i->ctime = time(0);
     new_disk_i->gid = ext2_inode->gid;
     new_disk_i->links_count = 1;  // 父目录中的自己
-    new_disk_i->blocks = 1;
+    new_disk_i->blocks = 0;
     new_disk_i->flags = 0;
     EXT2_Inode *new_i = new EXT2_Inode(ext2_fs, new_i_n, new_disk_i);
     new_i->write_inode();  // 新Inode写入磁盘
@@ -199,13 +199,9 @@ void EXT2_DEntry::create(const std::string& name) {
     load_children();
     children.push_back(new_entry);
     write_children();
-    _pos();
 
     ext2_fs->write_gdt();
-    _pos();
-
     ext2_fs->write_super();
-    _pos();
 }
 
 
