@@ -117,9 +117,9 @@ void EXT2_FS::mount() {
     status = VFS::FS_mounted;
 }
 
-_u32 EXT2_FS::alloc_inode() {
+_u32 EXT2_FS::alloc_inode(EXT2_GD **ret_gd) {
     for (EXT2_GD* gdd: gdt_list) {
-        _u32 t = gdd->alloc_inode();
+        _u32 t = gdd->alloc_inode(ret_gd);
         if (t != 0) {
             _si(t);
             sb->free_inodes_count--;
@@ -129,9 +129,9 @@ _u32 EXT2_FS::alloc_inode() {
     return 0;
 }
 
-_u32 EXT2_FS::alloc_block() {
+_u32 EXT2_FS::alloc_block(EXT2_GD **ret_gd) {
     for (EXT2_GD* gdd: gdt_list) {
-        _u32 t = gdd->alloc_block();
+        _u32 t = gdd->alloc_block(ret_gd);
         if (t != 0) {
             _si(t);
             sb->free_blocks_count--;
@@ -142,17 +142,17 @@ _u32 EXT2_FS::alloc_block() {
 }
 
 void EXT2_FS::write_super() {
-    _u32 super_pos = 1;
+    _u32 super_pos = 1;  // super block 
     MM::Buf buf(sizeof(SuperBlock));
     memcpy(buf.data, sb, sizeof(SuperBlock));
     for (EXT2_GD *x: gdt_list) {
-        dev->write(buf, super_pos, sizeof(SuperBlock));
+        dev->write(buf, block_to_pos(super_pos), sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }
 }
 
 void EXT2_FS::write_gdt() {
-    _u32 super_pos = 2;
+    _u32 super_pos = 2; // 第一个组描述符表位置
     MM::Buf buf(gdt_list.size() * sizeof(GroupDescriptor));
     _u32 s_pos = 0;
     for (EXT2_GD *x: gdt_list) {
@@ -162,7 +162,7 @@ void EXT2_FS::write_gdt() {
         x->write_block_bitmap();
     }
     for (EXT2_GD *x: gdt_list) {
-        dev->write(buf, super_pos, sizeof(SuperBlock));
+        dev->write(buf, block_to_pos(super_pos), sizeof(GroupDescriptor));
         super_pos += sb->blocks_per_group;
     }
 }

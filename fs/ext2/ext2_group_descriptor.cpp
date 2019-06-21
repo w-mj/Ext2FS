@@ -45,7 +45,7 @@ _u8 *EXT2_GD::get_block_bitmap() {
     return block_bitmap;
 }
 
-_u32 EXT2_GD::alloc_inode() {
+_u32 EXT2_GD::alloc_inode(EXT2_GD** ret_gd) {
     if (gd->free_inodes_count == 0)
         return 0;
     get_inode_bitmap();
@@ -53,14 +53,16 @@ _u32 EXT2_GD::alloc_inode() {
         if (inode_bitmap[i] != (_u8)0xff) {
             int t = lowest_0(inode_bitmap[i]);
             inode_bitmap[i] |= _BITS_SIZE(t);
-            gd->free_blocks_count--; 
+            gd->free_inodes_count--; 
+            if (ret_gd != nullptr)
+                *ret_gd = this;
             return t + i * 8 + 1;
         }
     }
     return 0;
 }
 
-_u32 EXT2_GD::alloc_block() {
+_u32 EXT2_GD::alloc_block(EXT2_GD** ret_gd) {
     if (gd->free_blocks_count == 0)
         return 0;
     get_block_bitmap();
@@ -68,7 +70,9 @@ _u32 EXT2_GD::alloc_block() {
         if (block_bitmap[i] != (_u8)0xff) {
             int t = lowest_0(block_bitmap[i]);
             block_bitmap[i] |= _BITS_SIZE(t);
-            gd->free_blocks_count--;         
+            gd->free_blocks_count--; 
+            if (ret_gd != nullptr)
+                *ret_gd = this;        
             return t + i * 8 + 1;
         }
     }

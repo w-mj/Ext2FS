@@ -27,8 +27,8 @@ namespace EXT2 {
         _u32 block_size;
         _u32 group_cnt;
 
-        _u32 alloc_inode();
-        _u32 alloc_block();
+        _u32 alloc_inode(EXT2_GD **ret_gd=nullptr);
+        _u32 alloc_block(EXT2_GD **ret_gd=nullptr);
 
         void write_super();
         void write_gdt();

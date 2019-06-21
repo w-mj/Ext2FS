@@ -13,8 +13,8 @@ namespace EXT2 {
         GroupDescriptor *get_gd();
         _u8 *get_inode_bitmap();
         _u8 *get_block_bitmap();
-        _u32 alloc_inode();
-        _u32 alloc_block();
+        _u32 alloc_inode(EXT2_GD**);
+        _u32 alloc_block(EXT2_GD**);
         void write_inode_bitmap();
         void write_block_bitmap();
     };

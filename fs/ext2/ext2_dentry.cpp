@@ -76,14 +76,16 @@ void EXT2_DEntry::inflate() {
     sync = 0;
 }
 
-static int cal_name_len(std::string& s) {
-    if (s.size() % 4 == 0)
-        return s.size();
-    return 4 - (s.size() % 4) + s.size();
+static inline int cal_name_len(int s) {
+    if (s % 4 == 0)
+        return s;
+    return 4 - (s % 4) + s;
 }
 
 void EXT2_DEntry::mkdir(const std::string& new_name) {
-    _u32 new_i_n = ext2_fs->alloc_inode();
+    EXT2_GD *new_dir_gd = nullptr;
+    _u32 new_i_n = ext2_fs->alloc_inode(&new_dir_gd);
+    new_dir_gd->get_gd()->used_dirs_count++;
     _u32 new_b_n = ext2_fs->alloc_block();
     // _dbg_log("分配节点");
     // MM::Buf buf(1024);
@@ -100,7 +102,7 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     new_disk_i->size = ext2_fs->block_size;
     new_disk_i->atime = time(0);
     new_disk_i->mtime = time(0);
-    new_disk_i->dtime = time(0);
+    new_disk_i->ctime = time(0);
     new_disk_i->gid = ext2_inode->gid;
     new_disk_i->links_count = 2;  // . 和父目录中的自己
     new_disk_i->blocks = 2;
@@ -131,12 +133,12 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
         new_disk_entry->file_type = de->type;
         new_disk_entry->inode = de->inode_n;
         strcpy((char*)new_disk_entry->name, de->name.c_str());
-        new_disk_entry->name_len = cal_name_len(de->name);
+        new_disk_entry->name_len = strlen(de->name.c_str());
         if (sub_item_cnt == children.size() - 1) {
             // 最后一个项目充满整个块
             new_disk_entry->rec_len = ext2_fs->block_size - all_length;
         } else {
-            new_disk_entry->rec_len = 8 + new_disk_entry->name_len;
+            new_disk_entry->rec_len = 8 + cal_name_len(new_disk_entry->name_len);
         }
         sub_item_cnt++;
         all_length += new_disk_entry->rec_len;
@@ -145,6 +147,9 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     }
     // EXT2_File parent_body11(this, this->ext2_inode);
 
+    // 修改父目录的Inode
+    ext2_inode->i->links_count++; // 硬链接计数器加1
+    ext2_inode->write_inode();
 
     
     // 在子目录的文件体中写入.和..
@@ -156,14 +161,15 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     child_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
     new_disk_entry->inode = this->inode_n;
     new_disk_entry->name_len = 2;
+    new_disk_entry->rec_len = ext2_fs->block_size - 12;
     new_disk_entry->name[1] = '.';
     new_disk_entry->name[2] = '\0';
     child_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
     // EXT2_File child_bod11y(new_entry, new_i);
 
     // ext2_fs->sb->
-    // ext2_fs->write_gdt();
-    // ext2_fs->write_super();
+    ext2_fs->write_gdt();
+    ext2_fs->write_super();
 }
 
 
