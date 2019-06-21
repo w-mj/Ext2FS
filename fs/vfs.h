@@ -29,6 +29,7 @@ namespace VFS
 
     class Inode;
     class FS;
+    class File;
 
     /**
      * 一个目录项
@@ -50,6 +51,9 @@ namespace VFS
 
         virtual void mkdir(const std::string& new_name)=0;
         virtual void create(const std::string& new_name)=0;
+        virtual File *open_file(const std::string& name)=0;
+
+        DEntry* get_child(const std::string& name);
     };
 
     enum {

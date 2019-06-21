@@ -204,6 +204,15 @@ void EXT2_DEntry::create(const std::string& name) {
     ext2_fs->write_super();
 }
 
+VFS::File *EXT2_DEntry::open_file(const std::string& name) {
+    EXT2_DEntry *ans = dynamic_cast<EXT2_DEntry*>(get_child(name));
+    if (ans == nullptr)
+        return nullptr;
+    if (ans->ext2_inode == nullptr)
+        ans->inflate();
+    return new EXT2_File(ans, ans->ext2_inode);
+}
+
 
 EXT2_DEntry::~EXT2_DEntry() {
     delete inode;

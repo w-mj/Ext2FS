@@ -23,7 +23,12 @@ std::vector<std::string> split(const std::string& s, char sp) {
     return res;
 }
 
-void ls(VFS::DEntry *cwd, std::vector<std::string> cmdd) {
+struct OP {
+    const char *name;
+    VFS::DEntry* (*op)(VFS::DEntry *, const std::vector<std::string>&);
+};
+
+VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace std;
     cwd->load_children();
     for (auto& x: cwd->children) {
@@ -33,6 +38,7 @@ void ls(VFS::DEntry *cwd, std::vector<std::string> cmdd) {
             cout << "(" << x->inode_n <<")"<< x->name << "  ";
     }
     cout << endl;
+    return cwd;
 }
 
 VFS::DEntry *cd(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
@@ -43,39 +49,56 @@ VFS::DEntry *cd(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     if (cmdd[1] == ".")
         ;
     else if (cmdd[1] == "..") {
-        
         if (cwd->parent != nullptr)
             ans = cwd->parent;
     } else  {
-        while(it != cwd->children.end()) {
-            // _pos();
-            // _sa((*it)->name.c_str(), (*it)->name.size());
-            // _sa(cmdd[1].c_str(), cmdd[1].size());
-            if (strcmp(cmdd[1].c_str(), (*it)->name.c_str()) == 0) {
-                break;
-            }
-            it++;
-        }
-        if (it == cwd->children.end()) {
+        ans = cwd->get_child(cmdd[1]);
+        if (ans == nullptr) {
             cout << "No such directory " << cmdd[1] << endl;
-        } else {
-            if ((*it)->type != VFS::Directory) {
-                cout << cmdd[1] << " is not a directory." << endl;
-            } else {
-                ans = *it;
-            }
+            ans = cwd;
+        } else if (ans->type != VFS::Directory) {
+            cout << cmdd[1] << " is not a directory." << endl;
+            ans = cwd;
         }
     }
     return ans;
 }
 
-void mkdir(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+VFS::DEntry *mkdir(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     cwd->mkdir(cmdd[1]);
+    return cwd;
 }
 
-void touch(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+VFS::DEntry *touch(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     cwd->create(cmdd[1]);
+    return cwd;
 }
+
+VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    VFS::File *fe = cwd->open_file(cmdd[1]);
+    if (fe == nullptr)
+        std::cout << "No such file " << cmdd[1] << std::endl;
+    else {
+        _si(fe->size);
+        char *buf = new char[fe->size];
+        fe->read((_u8*)buf, fe->size);
+        fwrite(buf, fe->size, 1, stdout);
+        putchar('\n');
+        fflush(stdout);
+        delete[] buf;
+        delete fe;
+    }
+    return cwd;
+}
+
+OP ops[] = {
+    {"ls", ls},
+    {"cd", cd},
+    {"mkdir", mkdir},
+    {"touch", touch},
+    {"cat", cat},
+    {"unknown", nullptr}
+};
 
 int main(void) {
     using namespace std;
@@ -101,12 +124,6 @@ int main(void) {
             cout << "mount disk at /" << endl;
         } else if (fs->status == VFS::FS_unmounted) {
             cout << "Please mount fs first." << endl;
-        } else if (cmdd[0] == "ls") {
-            ls(cwd, cmdd);
-        } else if (cmdd[0] == "cd") {
-            cwd = cd(cwd, cmdd);
-        } else if (cmdd[0] == "mkdir") {
-            mkdir(cwd, cmdd);
         } else if (cmdd[0] == "exit") {
             break;
         } else if (cmdd[0] == "dump") {
@@ -116,10 +133,15 @@ int main(void) {
             else 
                 ext2_fs->dev->read(buf, ext2_fs->block_to_pos(stoi(cmdd[2])), 1024);
             _sa(buf.data, 1024);
-        } else if (cmdd[0] == "touch") {
-            touch(cwd, cmdd);
         } else {
-            cout << "Unknown command " << cmdd[0] << endl;
+            int i = 0;
+            while (ops[i].op != nullptr && strcmp(ops[i].name, cmdd[0].c_str()) != 0) {
+                i++;
+            }
+            if (ops[i].op == nullptr)
+                cout << "Unknown command " << cmdd[0] << endl;
+            else
+                cwd = ops[i].op(cwd, cmdd);
         }
         
         if (cwd != nullptr)

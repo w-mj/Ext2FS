@@ -50,6 +50,8 @@ void EXT2_FS::printFS() {
 
 int EXT2_FS::block_to_pos(int block) {
     // _si(block);
+    if (block == 0)
+        return 1024;
     return (block - 1) * block_size + 1024;
 }
 

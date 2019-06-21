@@ -6,6 +6,7 @@ namespace EXT2
 {
     class EXT2_FS;
     class EXT2_Inode;
+    class EXT2_File;
 
     class EXT2_DEntry: public VFS::DEntry {
     private:
@@ -24,6 +25,8 @@ namespace EXT2
 
         void mkdir(const std::string& name);
         void create(const std::string& name);
+
+        VFS::File *open_file(const std::string& name);
 
         ~EXT2_DEntry();
     };
