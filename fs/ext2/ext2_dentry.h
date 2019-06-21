@@ -10,6 +10,8 @@ namespace EXT2
     class EXT2_DEntry: public VFS::DEntry {
     private:
         EXT2_FS* ext2_fs;
+
+        void write_children();
     public:
         EXT2_Inode* ext2_inode = nullptr;
 
@@ -20,7 +22,8 @@ namespace EXT2
         void inflate();
         void load_children();
 
-        void mkdir(const std::string& new_name);
+        void mkdir(const std::string& name);
+        void create(const std::string& name);
 
         ~EXT2_DEntry();
     };

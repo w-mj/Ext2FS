@@ -20,5 +20,6 @@ namespace EXT2 {
         _u32 seek(int pos, int whence);
         _u32 read(_u8*, _u32 size);
         _u32 write(_u8*, _u32 size);
+        void resize(_u32 new_size);
     };
 }

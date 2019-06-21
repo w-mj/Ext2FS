@@ -7,6 +7,8 @@
 #include "ext2_inode.h"
 #include "ext2_dentry.h"
 #include "ext2_group_descriptor.h"
+
+#include <vector>
 namespace EXT2 {
 
     class EXT2_Inode;
@@ -22,13 +24,15 @@ namespace EXT2 {
         int inode_to_pos(int inode_n);
 
         SuperBlock* sb;
-        std::list<EXT2_GD*> gdt_list;
+        std::vector<EXT2_GD*> gdt_list;
 
         _u32 block_size;
         _u32 group_cnt;
 
         _u32 alloc_inode(EXT2_GD **ret_gd=nullptr);
         _u32 alloc_block(EXT2_GD **ret_gd=nullptr);
+        void release_inode(_u32 inode_n, EXT2_GD **ret_gd=nullptr);
+        void release_block(_u32 block_n, EXT2_GD **ret_gd=nullptr);
 
         void write_super();
         void write_gdt();

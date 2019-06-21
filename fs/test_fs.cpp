@@ -73,6 +73,10 @@ void mkdir(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     cwd->mkdir(cmdd[1]);
 }
 
+void touch(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    cwd->create(cmdd[1]);
+}
+
 int main(void) {
     using namespace std;
 
@@ -112,7 +116,10 @@ int main(void) {
             else 
                 ext2_fs->dev->read(buf, ext2_fs->block_to_pos(stoi(cmdd[2])), 1024);
             _sa(buf.data, 1024);
-
+        } else if (cmdd[0] == "touch") {
+            touch(cwd, cmdd);
+        } else {
+            cout << "Unknown command " << cmdd[0] << endl;
         }
         
         if (cwd != nullptr)

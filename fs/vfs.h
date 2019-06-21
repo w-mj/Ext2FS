@@ -49,6 +49,7 @@ namespace VFS
         virtual void load_children()=0;
 
         virtual void mkdir(const std::string& new_name)=0;
+        virtual void create(const std::string& new_name)=0;
     };
 
     enum {

@@ -12,10 +12,10 @@ EXT2_File::EXT2_File(EXT2_DEntry *d, EXT2_Inode *i) {
     size = i->i->size;
     _dbg_log("打开文件");
     _si(size);
-    MM::Buf buf(size);
-    read(buf.data, size);
-    _sa(buf.data, size);
-    pos = 0;
+    // MM::Buf buf(size);
+    // read(buf.data, size);
+    // _sa(buf.data, size);
+    // pos = 0;
 }
 
 _u32 EXT2_File::tell() {
@@ -91,4 +91,25 @@ _u32 EXT2_File::write(_u8 *buf, _u32 len) {
     if (pos > size)
         size = pos;
     return write_len;
+}
+
+void EXT2_File::resize(_u32 new_size) {
+    if (size == new_size)
+        return;
+    if (ext2_inode->i->blocks >= 13)
+        _error_s(ext2_inode->i->blocks, "not support big file yet");
+    _u32 current_blocks = ext2_inode->i->blocks - 1;
+    _u32 target_blocks = new_size / ext2_fs->block_size + ((new_size % ext2_fs->block_size) > 0);
+    if (new_size < size) {
+        while (target_blocks < current_blocks) {
+            current_blocks--;
+            ext2_fs->release_block(ext2_inode->i->block[current_blocks]);  // 循环释放当前块
+        }
+    } else {
+        while (target_blocks > current_blocks) {
+            ext2_inode->i->block[current_blocks] = ext2_fs->alloc_block();
+            current_blocks++;
+        }
+    }
+    ext2_inode->i->blocks = current_blocks + 1;
 }

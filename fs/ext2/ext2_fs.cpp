@@ -118,27 +118,50 @@ void EXT2_FS::mount() {
 }
 
 _u32 EXT2_FS::alloc_inode(EXT2_GD **ret_gd) {
+    _u32 inode_per_group = sb->inodes_count / group_cnt;
+    int i = 0;
     for (EXT2_GD* gdd: gdt_list) {
-        _u32 t = gdd->alloc_inode(ret_gd);
+        _u32 t = gdd->alloc_inode();
         if (t != 0) {
-            _si(t);
+            // _si(t);
             sb->free_inodes_count--;
-            return t;
+            if (ret_gd != nullptr)
+                *ret_gd = gdd;
+            return t + i * inode_per_group;
         }
+        i++;
     }
     return 0;
 }
 
 _u32 EXT2_FS::alloc_block(EXT2_GD **ret_gd) {
+    _u32 block_per_group = sb->blocks_count / group_cnt;
+    int i = 0;
     for (EXT2_GD* gdd: gdt_list) {
-        _u32 t = gdd->alloc_block(ret_gd);
+        _u32 t = gdd->alloc_block();
         if (t != 0) {
             _si(t);
             sb->free_blocks_count--;
-            return t;
+            if (ret_gd != nullptr)
+                *ret_gd = gdd;
+            return t + i * block_per_group;
         }
     }
     return 0;
+}
+
+void EXT2_FS::release_inode(_u32 inode_n, EXT2_GD **ret_gd) {
+    _u32 inode_per_group = sb->inodes_count / group_cnt;
+    _u32 which_group = inode_n / inode_per_group;
+    _u32 inode_in_group = inode_n % inode_per_group;
+    gdt_list[which_group]->release_inode(inode_in_group);
+}
+
+void EXT2_FS::release_block(_u32 block_n, EXT2_GD **ret_gd) {
+    _u32 block_per_group = sb->blocks_count / group_cnt;
+    _u32 which_group = block_n / block_per_group;
+    _u32 block_in_group = block_n % block_per_group;
+    gdt_list[which_group]->release_block(block_in_group);
 }
 
 void EXT2_FS::write_super() {
@@ -155,12 +178,19 @@ void EXT2_FS::write_gdt() {
     _u32 super_pos = 2; // 第一个组描述符表位置
     MM::Buf buf(gdt_list.size() * sizeof(GroupDescriptor));
     _u32 s_pos = 0;
+    _pos();
+
     for (EXT2_GD *x: gdt_list) {
         memcpy(buf.data + s_pos, x->get_gd(), sizeof(GroupDescriptor));
         s_pos += sizeof(GroupDescriptor);
         x->write_inode_bitmap();
+        _pos();
+
         x->write_block_bitmap();
+        _pos();
+
     }
+    _pos();
     for (EXT2_GD *x: gdt_list) {
         dev->write(buf, block_to_pos(super_pos), sizeof(GroupDescriptor));
         super_pos += sb->blocks_per_group;

@@ -45,42 +45,70 @@ _u8 *EXT2_GD::get_block_bitmap() {
     return block_bitmap;
 }
 
-_u32 EXT2_GD::alloc_inode(EXT2_GD** ret_gd) {
+_u32 EXT2_GD::alloc_inode() {
     if (gd->free_inodes_count == 0)
         return 0;
+    _pos();
     get_inode_bitmap();
     for (int i = 0; i < fs->block_size; i++) {
         if (inode_bitmap[i] != (_u8)0xff) {
             int t = lowest_0(inode_bitmap[i]);
-            inode_bitmap[i] |= _BITS_SIZE(t);
+            _set_bit(inode_bitmap[i], t);
+            // inode_bitmap[i] |= _BITS_SIZE(t);
             gd->free_inodes_count--; 
-            if (ret_gd != nullptr)
-                *ret_gd = this;
             return t + i * 8 + 1;
         }
     }
     return 0;
 }
 
-_u32 EXT2_GD::alloc_block(EXT2_GD** ret_gd) {
+_u32 EXT2_GD::alloc_block() {
     if (gd->free_blocks_count == 0)
         return 0;
     get_block_bitmap();
     for (int i = 0; i < fs->block_size; i++) {
         if (block_bitmap[i] != (_u8)0xff) {
             int t = lowest_0(block_bitmap[i]);
-            block_bitmap[i] |= _BITS_SIZE(t);
-            gd->free_blocks_count--; 
-            if (ret_gd != nullptr)
-                *ret_gd = this;        
+            _set_bit(block_bitmap[i], t);
+            // block_bitmap[i] |= _BITS_SIZE(t);
+            gd->free_blocks_count--;       
             return t + i * 8 + 1;
         }
     }
     return 0;
 }
 
+void EXT2_GD::release_inode(_u32 inode_n) {
+    _si(inode_n);
+    inode_n--;
+    get_inode_bitmap();
+    _u32 which_byte = inode_n / 8;
+    _u32 which_bit = inode_n % 8;
+    if (_chk_bit(inode_bitmap[which_byte], which_bit) == 0) {
+        _error_s("inode %d is not in used.", inode_n);
+    }
+    _clr_bit(inode_bitmap[which_byte], which_bit);
+}
+
+
+void EXT2_GD::release_block(_u32 block_n) {
+    _si(block_n);
+    block_n--;
+    get_block_bitmap();
+    _u32 which_byte = block_n / 8;
+    _u32 which_bit = block_n % 8;
+    if (_chk_bit(block_bitmap[which_byte], which_bit) == 0) {
+        _error_s("block %d is not in used.", block_n);
+    }
+    _clr_bit(block_bitmap[which_byte], which_bit);
+}
+
+
+
 void EXT2_GD::write_inode_bitmap() {
     // fs->dev->seek();
+    if (inode_bitmap == nullptr)
+        return;
     MM::Buf buf(fs->block_size);
     memcpy(buf.data, inode_bitmap, fs->block_size);
     fs->dev->write(buf, fs->block_to_pos(gd->inode_bitmap), fs->block_size);
@@ -88,6 +116,8 @@ void EXT2_GD::write_inode_bitmap() {
 
 void EXT2_GD::write_block_bitmap() {
     // fs->dev->seek();
+    if (block_bitmap == nullptr)
+        return;
     MM::Buf buf(fs->block_size);
     memcpy(buf.data, block_bitmap, fs->block_size);
     fs->dev->write(buf, fs->block_to_pos(gd->block_bitmap), fs->block_size);

@@ -2,6 +2,7 @@
 #include "ext2_file.h"
 #include "delog/delog.h"
 #include "mm/buf.h"
+#include "stat.h"
 #include <cstring>
 #include <ctime>
 
@@ -19,6 +20,8 @@ EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1,
 }
 #include <iostream>
 void EXT2_DEntry::load_children() {
+    _error(type != VFS::Directory);
+
     if (ext2_inode != nullptr && sync == 0)
         return ;
     inflate();
@@ -82,49 +85,8 @@ static inline int cal_name_len(int s) {
     return 4 - (s % 4) + s;
 }
 
-void EXT2_DEntry::mkdir(const std::string& new_name) {
-    EXT2_GD *new_dir_gd = nullptr;
-    _u32 new_i_n = ext2_fs->alloc_inode(&new_dir_gd);
-    new_dir_gd->get_gd()->used_dirs_count++;
-    _u32 new_b_n = ext2_fs->alloc_block();
-    // _dbg_log("分配节点");
-    // MM::Buf buf(1024);
-    // ext2_fs->dev->read(buf, ext2_fs->inode_to_pos(new_i_n - 1), 1024);
-    // _sa(buf.data, 1024);
-    // exit(0);
-    load_children();
-
-    // 构建新的Inode
-    EXT2::Inode *new_disk_i = new EXT2::Inode();
-    _sp(*new_disk_i);
-    new_disk_i->mode = ext2_inode->mode;
-    new_disk_i->uid = ext2_inode->uid;
-    new_disk_i->size = ext2_fs->block_size;
-    new_disk_i->atime = time(0);
-    new_disk_i->mtime = time(0);
-    new_disk_i->ctime = time(0);
-    new_disk_i->gid = ext2_inode->gid;
-    new_disk_i->links_count = 2;  // . 和父目录中的自己
-    new_disk_i->blocks = 2;
-    new_disk_i->flags = 0;
-    new_disk_i->block[0] = new_b_n;
-    EXT2_Inode *new_i = new EXT2_Inode(ext2_fs, new_i_n, new_disk_i);
-    new_i->write_inode();  // 新Inode写入磁盘
-    EXT2_DEntry *new_entry = new EXT2_DEntry(ext2_fs, this, new_i_n, VFS::Directory, new_name);
-    new_entry->ext2_inode = new_i;
-    // 加入到当前目录中
-    children.push_back(new_entry);
-    // 构建新的DirEntry
+void EXT2_DEntry::write_children() {
     DirEntry new_disk_entry[1];
-    // new_disk_entry->file_type = VFS::Directory;
-    // new_disk_entry->inode = new_i_n;
-    // strcpy((char*)new_disk_entry->name, new_name.c_str());
-    // new_disk_entry->name_len = new_name.size();
-    // _u32 expend_name_len = new_disk_entry->name_len;
-    // if (expend_name_len % 4 != 0)
-    //     expend_name_len += 4 - expend_name_len % 4;
-    // new_disk_entry->rec_len = 8 + expend_name_len;
-    // 子目录的DirEntry写入父目录的文件体中
     EXT2_File parent_body(this, this->ext2_inode);
     _u32 all_length = 0;
     _u32 sub_item_cnt = 0;
@@ -145,15 +107,54 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
         parent_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
         // new_disk_entry->name = de->name.c_str();
     }
+}
+
+void EXT2_DEntry::mkdir(const std::string& new_name) {
+    if (type != VFS::Directory)
+        _error(type);
+    EXT2_GD *new_dir_gd = nullptr;
+    _u32 new_i_n = ext2_fs->alloc_inode(&new_dir_gd);
+    new_dir_gd->get_gd()->used_dirs_count++;
+    _u32 new_b_n = ext2_fs->alloc_block();
+    // _dbg_log("分配节点");
+    // MM::Buf buf(1024);
+    // ext2_fs->dev->read(buf, ext2_fs->inode_to_pos(new_i_n - 1), 1024);
+    // _sa(buf.data, 1024);
+    // exit(0);
+    load_children();
+
+    // 构建新的Inode
+    EXT2::Inode *new_disk_i = new EXT2::Inode();
+    // _sp(*new_disk_i);
+    new_disk_i->mode = ext2_inode->mode;
+    new_disk_i->uid = ext2_inode->uid;
+    new_disk_i->size = ext2_fs->block_size;
+    new_disk_i->atime = time(0);
+    new_disk_i->mtime = time(0);
+    new_disk_i->ctime = time(0);
+    new_disk_i->gid = ext2_inode->gid;
+    new_disk_i->links_count = 2;  // . 和父目录中的自己
+    new_disk_i->blocks = 2;
+    new_disk_i->flags = 0;
+    new_disk_i->block[0] = new_b_n;
+    EXT2_Inode *new_i = new EXT2_Inode(ext2_fs, new_i_n, new_disk_i);
+    new_i->write_inode();  // 新Inode写入磁盘
+    EXT2_DEntry *new_entry = new EXT2_DEntry(ext2_fs, this, new_i_n, VFS::Directory, new_name);
+    new_entry->ext2_inode = new_i;
+    // 加入到当前目录中
+    children.push_back(new_entry);
+    // 子目录的DirEntry写入父目录的文件体中
+    write_children();
     // EXT2_File parent_body11(this, this->ext2_inode);
 
     // 修改父目录的Inode
     ext2_inode->i->links_count++; // 硬链接计数器加1
     ext2_inode->write_inode();
 
-    
+    DirEntry new_disk_entry[1];    
     // 在子目录的文件体中写入.和..
     EXT2_File child_body(new_entry, new_i);
+    new_disk_entry->inode = new_i_n;
     new_disk_entry->rec_len = 12;
     new_disk_entry->name_len = 1;
     new_disk_entry->name[0] = '.';
@@ -170,6 +171,41 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     // ext2_fs->sb->
     ext2_fs->write_gdt();
     ext2_fs->write_super();
+}
+
+void EXT2_DEntry::create(const std::string& name) {
+    if (type != VFS::Directory)
+        _error(type);
+    _pos();
+    _u32 new_i_n = ext2_fs->alloc_inode();
+    _error(new_i_n == 0);
+    EXT2::Inode *new_disk_i = new EXT2::Inode();
+    // _sp(*new_disk_i);
+    new_disk_i->mode = S_IFREG | S_IRUSR | S_IWUSR  | S_IROTH | S_IRGRP;
+    new_disk_i->uid = ext2_inode->uid;
+    new_disk_i->size = 0;
+    new_disk_i->atime = time(0);
+    new_disk_i->mtime = time(0);
+    new_disk_i->ctime = time(0);
+    new_disk_i->gid = ext2_inode->gid;
+    new_disk_i->links_count = 1;  // 父目录中的自己
+    new_disk_i->blocks = 1;
+    new_disk_i->flags = 0;
+    EXT2_Inode *new_i = new EXT2_Inode(ext2_fs, new_i_n, new_disk_i);
+    new_i->write_inode();  // 新Inode写入磁盘
+    EXT2_DEntry *new_entry = new EXT2_DEntry(ext2_fs, this, new_i_n, VFS::RegularFile, name);
+    new_entry->ext2_inode = new_i;
+
+    load_children();
+    children.push_back(new_entry);
+    write_children();
+    _pos();
+
+    ext2_fs->write_gdt();
+    _pos();
+
+    ext2_fs->write_super();
+    _pos();
 }
 
 
