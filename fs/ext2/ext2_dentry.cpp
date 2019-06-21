@@ -36,7 +36,7 @@ void EXT2_DEntry::load_children() {
     children.clear();
     // for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
     _sp(*ext2_inode);
-    ext2_inode->print();
+    // ext2_inode->print();
     for (int i: *ext2_inode) {
         _u32 data_block_pos = ext2_fs->block_to_pos(i);
         dev->read(buf, data_block_pos, ext2_fs->block_size);
@@ -49,8 +49,9 @@ void EXT2_DEntry::load_children() {
             if (temp_str->rec_len == 0)
                 break;
             EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
-                    temp_str->inode - 1, temp_str->file_type, 
+                    temp_str->inode, temp_str->file_type, 
                     std::string((char*)temp_str->name, temp_str->name_len));
+            _si(temp_str->rec_len);
             children.push_back(sub);
             // std::cout << sub->name << " " << sub->inode_n << std::endl;
             s_pos += temp_str->rec_len;
@@ -75,9 +76,20 @@ void EXT2_DEntry::inflate() {
     sync = 0;
 }
 
+static int cal_name_len(std::string& s) {
+    if (s.size() % 4 == 0)
+        return s.size();
+    return 4 - (s.size() % 4) + s.size();
+}
+
 void EXT2_DEntry::mkdir(const std::string& new_name) {
     _u32 new_i_n = ext2_fs->alloc_inode();
     _u32 new_b_n = ext2_fs->alloc_block();
+    // _dbg_log("分配节点");
+    // MM::Buf buf(1024);
+    // ext2_fs->dev->read(buf, ext2_fs->inode_to_pos(new_i_n - 1), 1024);
+    // _sa(buf.data, 1024);
+    // exit(0);
     load_children();
 
     // 构建新的Inode
@@ -102,17 +114,39 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     children.push_back(new_entry);
     // 构建新的DirEntry
     DirEntry new_disk_entry[1];
-    new_disk_entry->file_type = VFS::Directory;
-    new_disk_entry->inode = new_i_n;
-    strcpy((char*)new_disk_entry->name, new_name.c_str());
-    new_disk_entry->name_len = new_name.size();
-    _u32 expend_name_len = new_disk_entry->name_len;
-    if (expend_name_len % 4 != 0)
-        expend_name_len += 4 - expend_name_len % 4;
-    new_disk_entry->rec_len = 8 + expend_name_len;
+    // new_disk_entry->file_type = VFS::Directory;
+    // new_disk_entry->inode = new_i_n;
+    // strcpy((char*)new_disk_entry->name, new_name.c_str());
+    // new_disk_entry->name_len = new_name.size();
+    // _u32 expend_name_len = new_disk_entry->name_len;
+    // if (expend_name_len % 4 != 0)
+    //     expend_name_len += 4 - expend_name_len % 4;
+    // new_disk_entry->rec_len = 8 + expend_name_len;
     // 子目录的DirEntry写入父目录的文件体中
     EXT2_File parent_body(this, this->ext2_inode);
-    parent_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
+    _u32 all_length = 0;
+    _u32 sub_item_cnt = 0;
+    for (VFS::DEntry* de: children) {
+        memset(new_disk_entry->name, 0, sizeof(new_disk_entry->name));
+        new_disk_entry->file_type = de->type;
+        new_disk_entry->inode = de->inode_n;
+        strcpy((char*)new_disk_entry->name, de->name.c_str());
+        new_disk_entry->name_len = cal_name_len(de->name);
+        if (sub_item_cnt == children.size() - 1) {
+            // 最后一个项目充满整个块
+            new_disk_entry->rec_len = ext2_fs->block_size - all_length;
+        } else {
+            new_disk_entry->rec_len = 8 + new_disk_entry->name_len;
+        }
+        sub_item_cnt++;
+        all_length += new_disk_entry->rec_len;
+        parent_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
+        // new_disk_entry->name = de->name.c_str();
+    }
+    // EXT2_File parent_body11(this, this->ext2_inode);
+
+
+    
     // 在子目录的文件体中写入.和..
     EXT2_File child_body(new_entry, new_i);
     new_disk_entry->rec_len = 12;
@@ -125,6 +159,7 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     new_disk_entry->name[1] = '.';
     new_disk_entry->name[2] = '\0';
     child_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
+    // EXT2_File child_bod11y(new_entry, new_i);
 
     // ext2_fs->sb->
     // ext2_fs->write_gdt();

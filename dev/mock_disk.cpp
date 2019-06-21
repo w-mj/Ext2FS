@@ -22,7 +22,13 @@ _u32 MockDisk::write(MM::Buf& buf1, _u32 pos, _u32 size) {
     
     // f.write(buf.data, size);
     // return fwrite(buf.data, size, 1, f);
+    // _dbg_log("写入文件 old");
+    // _si(pos);
+    // _si(size);
+    //_sa(buf + pos, size);
     memcpy(buf + pos, buf1.data, size);
+    //_dbg_log("写入文件 new");
+    //_sa(buf + pos, size);
     return size;
 }
 
@@ -56,6 +62,7 @@ void MockDisk::open(const std::string& path) {
 
 void MockDisk::close() {
     f = fopen(name.c_str(), "wb");
+    _dbg_log("保存磁盘");
     // f.open(path, std::ios::binary);
     if (f == nullptr) {
         // std::cout << "文件打开错误"<< std::endl;

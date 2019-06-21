@@ -246,6 +246,10 @@ _print_debug_CON:
             fmt_str(ms_msg, msgsize, " (%d)", len);
             msgsize -= print_bin(ms_msg, msgsize, (_u8*)tp, len);
         break;
+        case 't':
+            // _getva_S(str, params);
+            fmt_vstr(ms_msg, msgsize, params);
+            break;
         default:
             fprintf(stderr, "Unknown fmt %c\n", fmt[0]);
     }

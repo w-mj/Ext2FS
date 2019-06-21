@@ -98,12 +98,12 @@ void EXT2_Inode::write_inode() {
     _si(inode_pos);
     MM::Buf buf(sizeof(EXT2::Inode));
     memcpy(buf.data, i, sizeof(EXT2::Inode));
-    _sa(buf.data, sizeof(EXT2::Inode));
+    // _sa(buf.data, sizeof(EXT2::Inode));
     ext2_fs->dev->write(buf, inode_pos, sizeof(EXT2::Inode));
-    memset(buf.data, 0, sizeof(EXT2::Inode));
-    _sa(buf.data, sizeof(EXT2::Inode));
-    ext2_fs->dev->read(buf, inode_pos, sizeof(EXT2::Inode));
-    _sa(buf.data, sizeof(EXT2::Inode));
+    // memset(buf.data, 0, sizeof(EXT2::Inode));
+    // _sa(buf.data, sizeof(EXT2::Inode));
+    // ext2_fs->dev->read(buf, inode_pos, sizeof(EXT2::Inode));
+    // _sa(buf.data, sizeof(EXT2::Inode));
     
 }
 

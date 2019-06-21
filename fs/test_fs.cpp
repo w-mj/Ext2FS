@@ -1,9 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstring>
 #include "ext2/ext2_fs.h"
 #include "dev/block_dev.h"
 #include "dev/mock_disk.h"
+#include "delog/delog.h"
 
 std::vector<std::string> split(const std::string& s, char sp) {
     int i = 0, l = 0;
@@ -28,7 +30,7 @@ void ls(VFS::DEntry *cwd, std::vector<std::string> cmdd) {
         if (cmdd.size() == 2 && cmdd[1] == "l")
             cout << x->name << "  " << x->inode_n << endl;
         else
-            cout << x->name << "  ";
+            cout << "(" << x->inode_n <<")"<< x->name << "  ";
     }
     cout << endl;
 }
@@ -46,7 +48,10 @@ VFS::DEntry *cd(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
             ans = cwd->parent;
     } else  {
         while(it != cwd->children.end()) {
-            if (cmdd[1] == (*it)->name) {
+            // _pos();
+            // _sa((*it)->name.c_str(), (*it)->name.size());
+            // _sa(cmdd[1].c_str(), cmdd[1].size());
+            if (strcmp(cmdd[1].c_str(), (*it)->name.c_str()) == 0) {
                 break;
             }
             it++;
@@ -73,7 +78,8 @@ int main(void) {
 
     Dev::BlockDevice *dev = new Dev::MockDisk();
     dev->open("fs/ext2/fs");
-    VFS::FS *fs = new EXT2::EXT2_FS(dev);
+    EXT2::EXT2_FS *ext2_fs = new EXT2::EXT2_FS(dev);
+    VFS::FS *fs = ext2_fs;
     cout << "System up." << endl;
     cout << "File System at " << "fs/ext2/fs" << endl;
     string cmd;
@@ -99,6 +105,14 @@ int main(void) {
             mkdir(cwd, cmdd);
         } else if (cmdd[0] == "exit") {
             break;
+        } else if (cmdd[0] == "dump") {
+            MM::Buf buf(1024);
+            if (cmdd[1] == "i")
+                ext2_fs->dev->read(buf, ext2_fs->inode_to_pos(stoi(cmdd[2])), 1024);
+            else 
+                ext2_fs->dev->read(buf, ext2_fs->block_to_pos(stoi(cmdd[2])), 1024);
+            _sa(buf.data, 1024);
+
         }
         
         if (cwd != nullptr)
@@ -106,4 +120,5 @@ int main(void) {
         else
             cout << "[umount]$ ";
     }
+    dev->close();
 }

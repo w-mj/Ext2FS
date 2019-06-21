@@ -17,7 +17,7 @@ namespace EXT2 {
     public:
         EXT2_File(EXT2_DEntry *, EXT2_Inode *);
         _u32 tell();
-        _u32 seek(_u32 pos);
+        _u32 seek(int pos, int whence);
         _u32 read(_u8*, _u32 size);
         _u32 write(_u8*, _u32 size);
     };

@@ -21,6 +21,12 @@ namespace VFS
         SymbolLink
     };
 
+    enum SEEK {
+        SET=0,
+        CUR,
+        END
+    };
+
     class Inode;
     class FS;
 
@@ -105,7 +111,7 @@ namespace VFS
         _u32 size;
         _u8 open_mode;
         virtual _u32 tell()=0;
-        virtual _u32 seek(_u32 pos)=0;
+        virtual _u32 seek(int pos, int whence)=0;
         virtual _u32 read(_u8*, _u32 size)=0;
         virtual _u32 write(_u8*, _u32 size)=0;
     };

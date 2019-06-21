@@ -54,6 +54,7 @@ int EXT2_FS::block_to_pos(int block) {
 }
 
 int EXT2_FS::inode_to_pos(int inode_n) {
+    inode_n--;
     int max_inodes_in_group = 8 * block_size;
     auto it = gdt_list.begin();
     while (it != gdt_list.end() && inode_n > max_inodes_in_group) {
@@ -105,7 +106,7 @@ void EXT2_FS::mount() {
     // Inode* root_inode = new Inode();
     // memmove(root_inode, sb_buf.data, sizeof(Inode));
     _u32 root_inode_pos = gdt_list.front()->get_gd()->inode_table;
-    EXT2_DEntry* ext2_entry = new EXT2_DEntry(this, nullptr, 1, VFS::Directory, "/");
+    EXT2_DEntry* ext2_entry = new EXT2_DEntry(this, nullptr, 2, VFS::Directory, "/");
     root = ext2_entry;
     // ext2_entry->inflate();
     // ext2_entry->load_children();

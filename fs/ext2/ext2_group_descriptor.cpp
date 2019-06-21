@@ -41,6 +41,7 @@ _u8 *EXT2_GD::get_block_bitmap() {
     fs->dev->read(buf, fs->block_to_pos(gd->block_bitmap), fs->block_size);
     block_bitmap = new _u8[fs->block_size];
     memcpy(block_bitmap, buf.data, fs->block_size);
+    // _sa(block_bitmap, 1024);
     return block_bitmap;
 }
 
@@ -53,7 +54,7 @@ _u32 EXT2_GD::alloc_inode() {
             int t = lowest_0(inode_bitmap[i]);
             inode_bitmap[i] |= _BITS_SIZE(t);
             gd->free_blocks_count--; 
-            return t + i * 8;
+            return t + i * 8 + 1;
         }
     }
     return 0;
@@ -68,7 +69,7 @@ _u32 EXT2_GD::alloc_block() {
             int t = lowest_0(block_bitmap[i]);
             block_bitmap[i] |= _BITS_SIZE(t);
             gd->free_blocks_count--;         
-            return t + i * 8;
+            return t + i * 8 + 1;
         }
     }
     return 0;
