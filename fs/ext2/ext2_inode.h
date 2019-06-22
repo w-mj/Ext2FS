@@ -10,7 +10,6 @@ namespace EXT2
     class EXT2_Inode: public VFS::Inode {
     public:
         class iterator {
-            int index = 1;
             int block_index=0;
 
             // 块数计数器
@@ -31,8 +30,15 @@ namespace EXT2
             // [12, 256, 256, 256]
             _u32 sub_blocks_in_block[4];
             EXT2_Inode* inode;
-        public:
+
+            // 从磁盘加载块缓存
+            // from可取0, 1, 2，表示加载从第几级间址开始加载
+            void load_buf(int from=0);
             iterator(EXT2_Inode* i);
+
+        public:
+            static iterator getInstance(EXT2_Inode *i, _u32 blocks=0);
+
             ~iterator();
             // ++a
             iterator& operator++();
@@ -40,7 +46,7 @@ namespace EXT2
             const iterator& operator++(int);
             bool operator==(const iterator& ano) const;
             bool operator!=(const iterator& ano) const;
-            int operator*() const ;
+            int operator*() ;
 
             friend class EXT2_Inode;
         };
