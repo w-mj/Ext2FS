@@ -18,14 +18,14 @@ void EXT2_Inode::print() {
     cout << "文件删除的时间 " << i->dtime << endl;
     cout << "组id " << i->gid << endl;
     cout << "硬链接计数器 " << i->links_count << endl;
-    cout << "文件的数据块数 " << i->blocks << endl;
+    cout << "文件的数据块数 " << blocks << endl;
     cout << "文件标志 " << i->flags << endl;
     cout << "文件版本 " << i->generation << endl;
     cout << "文件访问控制列表 " << i->file_acl << endl;
     cout << "目录访问控制列表 " << i->dir_acl << endl;
     cout << "片地址 " << i->faddr << endl;
     cout << "数据块指针 ";
-    for (int j = 0; j < i->blocks;j++)
+    for (int j = 0; j < blocks;j++)
         cout << i->block[j] << " ";
     cout << endl;
 }
@@ -50,6 +50,7 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     sock = 1;
     inode_n = n;
     ext2_fs = fs;
+    blocks = i->blocks / (ext2_fs->block_size / 512);
 }
 
 _u32 EXT2_Inode::byte_in_block(_u32 b) {
@@ -109,14 +110,14 @@ void EXT2_Inode::write_inode() {
 
 EXT2_Inode::iterator EXT2_Inode::begin() {
     iterator it(this);
-    _si(it.index);
+    _si(it.index_cnt);
     return it;
 }
 
 EXT2_Inode::iterator EXT2_Inode::end() {
     iterator it(this);
-    it.index = ext2_fs->block_size / i->blocks;
-    _si(it.index);
+    it.index_cnt = blocks;  // 最大值
+    _si(it.index_cnt);
     return it;
 }
 
@@ -133,7 +134,7 @@ EXT2_Inode::iterator::iterator(EXT2_Inode* i) {
     sub_blocks_in_block[1] = i->ext2_fs->block_size / 4;
     sub_blocks_in_block[2] = sub_blocks_in_block[1];
     sub_blocks_in_block[3] = sub_blocks_in_block[2];
-    int indexs_per_block[4] = {
+    _u32 indexs_per_block[4] = {
         12,
         sub_blocks_in_block[1]
     };
@@ -152,9 +153,8 @@ EXT2_Inode::iterator::~iterator() {
 }
 
 
-EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
-    index++;
-    return *this;
+const EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
+    return ++(*this);
 }
 
 EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
@@ -162,6 +162,7 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
 
     index_cnt++;
     indexs[level]++;
+    _si(indexs[level]);
     if (indexs[level] >= sub_blocks_in_block[level]) {
         // 小升级! 
         int t = level;
@@ -196,22 +197,23 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
 bool
 EXT2_Inode::iterator::operator==(const iterator& ano) const {
     _error(inode != ano.inode);
-    return index == ano.index;
+    return !((*this) == ano);
 }
 
 bool
 EXT2_Inode::iterator::operator!=(const iterator& ano) const {
     _error(inode != ano.inode);
-    return index != ano.index;
+    return index_cnt != ano.index_cnt;
 }
 
 
 int EXT2_Inode::iterator::operator*() const {
-    return block_buf[level][indexs[level]];
-
+    int ans = block_buf[level][indexs[level]];
+    _si(ans);
+    return ans;
     // _pos();
     // fflush(stdout);
-    int ans = inode->nth_block(index);
-    // std::cout <<ans << std::endl;
+    // int ans = inode->nth_block(index);
+    // // std::cout <<ans << std::endl;
     return ans;
 }

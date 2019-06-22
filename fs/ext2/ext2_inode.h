@@ -17,31 +17,36 @@ namespace EXT2
             int index_cnt = 0;
             // buf0指向i->block
             // 三级分别页面缓存，各1k
-            _u32 *block_buf[4] = {nullptr};
+            _u32 *block_buf[4] = {nullptr, nullptr, nullptr, nullptr};
             // 每个缓存块的真实块号
-            _u32 block_pos[4] = {0};
+            _u32 block_pos[4] = {0, 0, 0,0 };
             // 在每个寻址级别下的最大可寻址块数
-            // [0, 256+12, 256^2+256+12, 256^3+256^2+256+12]
+            // [12, 256+12, 256^2+256+12, 256^3+256^2+256+12]
             _u32 max_blocks[4];
             // 在每个缓存页面上的指针
-            _u32 indexs[4] = {0};
+            _u32 indexs[4] = {0, 0, 0, 0};
             // 索引等级，可取值0 1 2 3
             int level = 0;
             // 每个间接索引块含的间接索引数
+            // [12, 256, 256, 256]
             _u32 sub_blocks_in_block[4];
             EXT2_Inode* inode;
         public:
             iterator(EXT2_Inode* i);
             ~iterator();
+            // ++a
             iterator& operator++();
-            iterator& operator++(int);
+            // a++
+            const iterator& operator++(int);
             bool operator==(const iterator& ano) const;
             bool operator!=(const iterator& ano) const;
             int operator*() const ;
 
             friend class EXT2_Inode;
         };
-
+    private:
+        _u32 blocks;
+    public:
         _u32 inode_n;
         EXT2::Inode* i;
         EXT2_FS *ext2_fs;
