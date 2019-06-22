@@ -188,11 +188,7 @@ void EXT2_FS::write_gdt() {
         memcpy(buf.data + s_pos, x->get_gd(), sizeof(GroupDescriptor));
         s_pos += sizeof(GroupDescriptor);
         x->write_inode_bitmap();
-        _pos();
-
         x->write_block_bitmap();
-        _pos();
-
     }
     _pos();
     for (EXT2_GD *x: gdt_list) {

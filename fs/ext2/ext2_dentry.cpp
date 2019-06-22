@@ -223,6 +223,7 @@ void EXT2_DEntry::unlink(VFS::DEntry *d) {
 
 
 void EXT2_DEntry::unlink() {
+    inflate();
     switch (type) {
         case VFS::Directory: {
             load_children();
@@ -232,11 +233,18 @@ void EXT2_DEntry::unlink() {
             }
         }  // 没有break
         case VFS::RegularFile: {
-            EXT2_File f(this);
-            f.resize(0);
-            ext2_fs->release_inode(inode_n);
-            ext2_fs->write_gdt();
-            ext2_fs->write_super();
+            ext2_inode->i->links_count--;
+            // 硬引用计数减一，当引用计数为0时彻底删除文件
+            if (ext2_inode->i->links_count == 0) {
+                _pos();
+                ext2_inode->i->dtime = time(0);
+                EXT2_File f(this);
+                f.resize(0);
+                ext2_inode->write_inode();
+                ext2_fs->release_inode(inode_n);
+                ext2_fs->write_gdt();
+                ext2_fs->write_super();
+            }
         }
         break;  
         default:

@@ -82,7 +82,7 @@ _u32 EXT2_File::write(_u8 *buf, _u32 len) {
     _u32 nth_block = pos / block_size + 1;  // 第一个字节在第n个块
     _u32 block_n = ext2_inode->nth_block(nth_block);  // 第一个字节的块号
     _u32 pos_in_fs = ext2_fs->block_to_pos(block_n);  // 第一个块在文件系统中的位置
-    _si(pos + len);
+    //_si(pos + len);
     MM::Buf buff(block_size);
     this_write_len = std::min(block_size - byte_in_block, len);
     memcpy(buff.data, buf, this_write_len);
@@ -98,7 +98,7 @@ _u32 EXT2_File::write(_u8 *buf, _u32 len) {
         write_len += this_write_len;
     }
     pos += write_len;
-    _si(pos);
+    //_si(pos);
     if (pos > size)
         size = pos;
     return write_len;
@@ -109,18 +109,21 @@ void EXT2_File::resize(_u32 new_size) {
         return;
     if (ext2_inode->i->blocks >= 13)
         _error_s(ext2_inode->i->blocks, "not support big file yet");
-    _u32 current_blocks = ext2_inode->i->blocks - 1;
+    _u32 current_blocks = ext2_inode->i->blocks;
     _u32 target_blocks = new_size / ext2_fs->block_size + ((new_size % ext2_fs->block_size) > 0);
     if (new_size < size) {
         while (target_blocks < current_blocks) {
             current_blocks--;
+            if (ext2_inode->i->block[current_blocks] == 0)
+                continue;
             ext2_fs->release_block(ext2_inode->i->block[current_blocks]);  // 循环释放当前块
+            ext2_inode->i->block[current_blocks] = 0;
         }
     } else {
         while (target_blocks > current_blocks) {
-            ext2_inode->i->block[current_blocks] = ext2_fs->alloc_block();
+            ext2_inode->i->block[current_blocks - 1] = ext2_fs->alloc_block();
             current_blocks++;
         }
     }
-    ext2_inode->i->blocks = current_blocks + 1;
+    ext2_inode->i->blocks = current_blocks;
 }
