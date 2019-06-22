@@ -82,6 +82,8 @@ namespace VFS
         virtual void unlink()=0;  // 删除自己，释放空间
         virtual void unlink_children()=0;
         virtual bool empty()=0;  // 判断一个目录是否为空
+        // 在本目录项中创建另一个目录项的硬链接
+        virtual void link(DEntry *, const std::string s="")=0;
 
         File *open(const std::string& name);
         File *open();

@@ -290,6 +290,20 @@ void EXT2_DEntry::unlink_children() {
     _dbg_log("unlink chlidren current %d. finish", inode_n);
 }
 
+void EXT2_DEntry::link(DEntry *tar, const std::string s) {
+    if (tar->fs != fs) {
+        _log_info("[EXT2]: Hard Link must in the same file system.");
+        return;
+    }
+    EXT2_DEntry *t = dynamic_cast<EXT2_DEntry*>(tar);
+    EXT2_DEntry *new_e = new EXT2_DEntry(t->ext2_fs, t->parent, t->inode_n, t->type, s==""?t->name:s);
+    load_children();
+    children.push_back(new_e);
+    write_children();
+    t->ext2_inode->i->links_count++;
+    t->ext2_inode->write_inode();
+}
+
 bool EXT2_DEntry::empty() {
     load_children();
     return children.size() == 2;

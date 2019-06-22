@@ -9,6 +9,7 @@
 #include "delog/delog.h"
 #include "stat.h"
 
+
 std::vector<std::string> split(const std::string& s, char sp) {
     int i = 0, l = 0;
     std::vector<std::string> res;
@@ -24,6 +25,45 @@ std::vector<std::string> split(const std::string& s, char sp) {
         res.push_back(s.substr(l, i - l));
     return res;
 }
+
+VFS::NameI *parse_path(const std::string path) {
+    using namespace VFS;
+    NameI *ans = nullptr, *prev;
+    if (path[0] == '/')
+        ans = prev = new NameI("/");
+    else
+        ans = prev = new NameI(".");
+    printf("%x %x\n", ans->prev, ans->next);
+    std::vector<std::string> sp = split(path, '/');
+    for (const auto& x: sp) {
+        // printf("++++++++++++++++++++++++++++++++++++\n");
+        _ss(x.c_str());
+        if (x.size() == 0)
+            continue;
+        if (x == ".")
+            continue;
+        if (x == "..") {
+            if (prev->prev == nullptr) {
+                goto error;
+            }
+            prev = prev->prev;
+            prev->next->prev = nullptr;
+            prev->next->next = nullptr;
+            delete prev->next;
+        } else if (ans == nullptr) {
+            ans = new NameI(x);
+            prev = ans;
+        } else {
+            prev = new NameI(x, prev);
+        }
+    }
+    _pos();
+    return ans;
+error:
+    delete ans;
+    return nullptr;
+}
+
 
 struct OP {
     const char *name;
@@ -164,6 +204,24 @@ VFS::DEntry *rm(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::str
     return cwd;
 }
 
+VFS::DEntry *link(VFS::DEntry *cwd, VFS::NameI *from, const std::vector<std::string>& cmdd) {
+    using namespace VFS;
+    DEntry *fe = cwd->get_child(from);
+    if (fe == nullptr) {
+        _log_info("%s is not exists.", cmdd[1].c_str());
+        return cwd;
+    }
+    DEntry *te;
+    std::string s;
+    NameI *target = parse_path(cmdd[2]);
+    if ((te = cwd->get_path(target, &s)) == nullptr) {
+        _log_info("%s is already exists.", cmdd[2].c_str());
+        return cwd;
+    }
+    te->link(fe);
+    return cwd;
+}
+
 OP ops[] = {
     {"ls", ls},
     {"cd", cd},
@@ -171,47 +229,10 @@ OP ops[] = {
     {"touch", touch},
     {"cat", cat},
     {"rm", rm},
+    {"link", link},
     {"unknown", nullptr}
 };
 
-
-VFS::NameI *parse_path(const std::string path) {
-    using namespace VFS;
-    NameI *ans = nullptr, *prev;
-    if (path[0] == '/')
-        ans = prev = new NameI("/");
-    else
-        ans = prev = new NameI(".");
-    printf("%x %x\n", ans->prev, ans->next);
-    std::vector<std::string> sp = split(path, '/');
-    for (const auto& x: sp) {
-        printf("++++++++++++++++++++++++++++++++++++\n");
-        _ss(x.c_str());
-        if (x.size() == 0)
-            continue;
-        if (x == ".")
-            continue;
-        if (x == "..") {
-            if (prev->prev == nullptr) {
-                goto error;
-            }
-            prev = prev->prev;
-            prev->next->prev = nullptr;
-            prev->next->next = nullptr;
-            delete prev->next;
-        } else if (ans == nullptr) {
-            ans = new NameI(x);
-            prev = ans;
-        } else {
-            prev = new NameI(x, prev);
-        }
-    }
-    _pos();
-    return ans;
-error:
-    delete ans;
-    return nullptr;
-}
 
 int main(void) {
     using namespace std;
