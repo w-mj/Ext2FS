@@ -93,9 +93,8 @@ _u32 EXT2_Inode::nth_block(_u32 n) {
 }
 
 void EXT2_Inode::write_inode() {
-    _pos();
+    _dbg_log("inode %d, size %d", inode_n, i->size);
     _u32 inode_pos = ext2_fs->inode_to_pos(inode_n);
-    _si(inode_pos);
     MM::Buf buf(sizeof(EXT2::Inode));
     memcpy(buf.data, i, sizeof(EXT2::Inode));
     // _sa(buf.data, sizeof(EXT2::Inode));

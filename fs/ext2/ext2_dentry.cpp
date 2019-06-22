@@ -12,6 +12,8 @@ EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1,
     fs = fs1;
     ext2_fs = fs1;
     parent = parent1;
+    if (parent == nullptr)
+        parent = this;
     inode = nullptr;
     inode_n = inode_n1;
     type=type1;
@@ -22,7 +24,7 @@ EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1,
 void EXT2_DEntry::load_children() {
     _error(type != VFS::Directory);
 
-    if (ext2_inode != nullptr && sync == 0)
+    if (ext2_inode != nullptr && children.size() != 0)
         return ;
     inflate();
     _log_info("load children");
@@ -52,11 +54,17 @@ void EXT2_DEntry::load_children() {
             memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
             if (temp_str->rec_len == 0)
                 break;
-            EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
-                    temp_str->inode, temp_str->file_type, 
-                    std::string((char*)temp_str->name, temp_str->name_len));
-            // _si(temp_str->rec_len);
-            children.push_back(sub);
+            // if (temp_str->inode == parent->inode_n) {
+            //     children.push_back(parent); 
+            // } else if (temp_str->inode == inode_n) {
+            //     children.push_back(this);
+            // } else {
+                EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
+                        temp_str->inode, temp_str->file_type, 
+                        std::string((char*)temp_str->name, temp_str->name_len));
+                // _si(temp_str->rec_len);
+                children.push_back(sub);
+            //}
             // std::cout << sub->name << " " << sub->inode_n << std::endl;
             s_pos += temp_str->rec_len;
             all_length += temp_str->rec_len;
@@ -211,44 +219,43 @@ VFS::File *EXT2_DEntry::get_file() {
 }
 
 void EXT2_DEntry::unlink(VFS::DEntry *d) {
+    _dbg_log("current %d, del %d.", inode_n, d->inode_n);
+    _error(type != VFS::Directory);
     load_children();
     if (d->type == VFS::Directory) {
-        ext2_inode->i->links_count--;
+        ext2_inode->i->links_count--;  // 降低自己的引用链接
         ext2_inode->write_inode();
+        ext2_fs->gdt_list[d->inode_n / ext2_fs->sb->inodes_per_group]->get_gd()->used_dirs_count--;
+        ext2_fs->write_gdt();
     }
     d->unlink();  // 删除子项目
     children.remove(d);
     write_children();
+
 }
 
 
 void EXT2_DEntry::unlink() {
     inflate();
-    switch (type) {
-        case VFS::Directory: {
-            load_children();
-            for (auto x: children) {
-                if (x->name != "." && x->name != "..")
-                    x->unlink();  // 这个文件夹本身也要被删除了，因此不需要修改自己的inode和数据块，直接删除子节点
-            }
-        }  // 没有break
-        case VFS::RegularFile: {
-            ext2_inode->i->links_count--;
-            // 硬引用计数减一，当引用计数为0时彻底删除文件
-            if (ext2_inode->i->links_count == 0) {
-                _pos();
-                ext2_inode->i->dtime = time(0);
-                EXT2_File f(this);
-                f.resize(0);
-                ext2_inode->write_inode();
-                ext2_fs->release_inode(inode_n);
-                ext2_fs->write_gdt();
-                ext2_fs->write_super();
-            }
-        }
-        break;  
-        default:
-            _error_s(1, "unknown type %d.", type);
+    _dbg_log("ulink %d ref cnt: %d type: %d.", inode_n, ext2_inode->i->links_count, type);
+    if (ext2_inode->i->links_count == 0)
+        return;
+
+    ext2_inode->i->links_count--;
+    // 硬引用计数减一，当引用计数为0时彻底删除文件，目录可以等于1
+    if (ext2_inode->i->links_count == 0 || (type==VFS::Directory && ext2_inode->i->links_count == 1)) {
+        _pos();
+        ext2_inode->i->dtime = time(0);
+        EXT2_File f(this);
+        f.resize(0);
+        // if (type==VFS::Directory)
+        //     ext2_inode->i->size = 1024;
+        ext2_inode->i->links_count = 0;
+        ext2_inode->write_inode();
+        ext2_fs->release_inode(inode_n);
+        ext2_fs->write_gdt();
+        ext2_fs->write_super();
+        return;
     }
 }
 
