@@ -53,3 +53,12 @@ static inline std::string mode_to_str(_u16 mode) {
 
     return ans;
 }
+#include "bits.h"
+static inline std::string previlege_to_str(_u16 mode) {
+    std::string ans = "rwxrwxrwx";
+    for (_u16 i = 0; i < 9; i++) {
+        if (_chk_bit(mode, 8 - i) == 0)
+            ans[i] = '-';
+    }
+    return ans;
+}

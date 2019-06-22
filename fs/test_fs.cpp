@@ -6,6 +6,7 @@
 #include "dev/block_dev.h"
 #include "dev/mock_disk.h"
 #include "delog/delog.h"
+#include "stat.h"
 
 std::vector<std::string> split(const std::string& s, char sp) {
     int i = 0, l = 0;
@@ -32,8 +33,22 @@ VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace std;
     cwd->load_children();
     for (auto& x: cwd->children) {
-        if (cmdd.size() == 2 && cmdd[1] == "l")
-            cout << x->name << "  " << x->inode_n << endl;
+        if (cmdd.size() == 2 && cmdd[1] == "-l") {
+            x->inflate();
+            switch (x->type) {
+                case VFS::Directory:
+                    cout << "d";
+                    break;
+                case VFS::RegularFile:
+                    cout << "-";
+                    break;
+                default:
+                    cout << "?";
+                    break;
+            }
+            cout << previlege_to_str(x->inode->mode) << " " << x->inode->uid << " " << x->inode->gid;
+            cout << " "  << x->inode->size << " " << x->inode->ctime << " " << x->name << endl;
+        }
         else
             cout << "(" << x->inode_n <<")"<< x->name << "  ";
     }
