@@ -116,6 +116,10 @@ EXT2_Inode::iterator EXT2_Inode::end() {
     return iterator::getInstance(this, blocks);
 }
 
+EXT2_Inode::iterator EXT2_Inode::iter_at(_u32 i) {
+    return iterator::getInstance(this, i);
+}
+
 EXT2_Inode::~EXT2_Inode() {
     delete i;
 }

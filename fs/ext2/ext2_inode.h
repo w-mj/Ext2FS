@@ -68,6 +68,7 @@ namespace EXT2
 
         iterator begin();
         iterator end();
+        iterator iter_at(_u32 i);
 
         ~EXT2_Inode();
 
