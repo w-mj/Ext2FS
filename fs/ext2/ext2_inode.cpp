@@ -115,7 +115,7 @@ EXT2_Inode::iterator EXT2_Inode::begin() {
 
 EXT2_Inode::iterator EXT2_Inode::end() {
     iterator it(this);
-    it.index = i->blocks;
+    it.index = ext2_fs->block_size / i->blocks;
     _si(it.index);
     return it;
 }
@@ -124,9 +124,33 @@ EXT2_Inode::~EXT2_Inode() {
     delete i;
 }
 
+// iterator below
+
 EXT2_Inode::iterator::iterator(EXT2_Inode* i) {
     inode = i;
+    block_buf[0] = i->i->block;
+    sub_blocks_in_block[0] = 12;
+    sub_blocks_in_block[1] = i->ext2_fs->block_size / 4;
+    sub_blocks_in_block[2] = sub_blocks_in_block[1];
+    sub_blocks_in_block[3] = sub_blocks_in_block[2];
+    int indexs_per_block[4] = {
+        12,
+        sub_blocks_in_block[1]
+    };
+    indexs_per_block[2] = indexs_per_block[1] * indexs_per_block[1];
+    indexs_per_block[3] = indexs_per_block[2] * indexs_per_block[1];
+    max_blocks[0] = indexs_per_block[0];
+    max_blocks[1] = max_blocks[0] + indexs_per_block[1];
+    max_blocks[2] = max_blocks[1] + indexs_per_block[2];
+    max_blocks[3] = max_blocks[2] + indexs_per_block[3];
 }
+
+EXT2_Inode::iterator::~iterator() {
+    delete block_buf[1];
+    delete block_buf[2];
+    delete block_buf[3];
+}
+
 
 EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
     index++;
@@ -134,7 +158,38 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++(int) {
 }
 
 EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
-    index++;
+    index++;  // [0, 12)
+
+    index_cnt++;
+    indexs[level]++;
+    if (indexs[level] >= sub_blocks_in_block[level]) {
+        // 小升级! 
+        int t = level;
+        while (t > 0 && indexs[t] >= sub_blocks_in_block[level]) {
+            // 重设指针
+            indexs[t - 1]++;
+            indexs[t] = 0;
+            t--;
+        }
+        if (t == 0) {
+            level++;  // 大升级！
+            _error(level == 4);
+        }
+        // 从t+1级开始重新设置页面
+        // t级所指向的位置就是t+1级的地址
+        EXT2_FS *fs = inode->ext2_fs;
+        while (t < level) {
+            _u32 new_block_pos = block_buf[t][indexs[t]];
+            MM::Buf buf(fs->block_size);
+            // TODO: Dirty save
+            block_pos[t + 1] = new_block_pos;
+            fs->dev->read(buf, fs->block_to_pos(new_block_pos), fs->block_size);
+            if (block_buf[t + 1] == nullptr)
+                block_buf[t + 1] = new _u32[sub_blocks_in_block[level]];
+            memcpy(block_buf[t + 1], buf.data, sub_blocks_in_block[t]);
+            t++;
+        }
+    }
     return *this;
 }
 
@@ -152,6 +207,8 @@ EXT2_Inode::iterator::operator!=(const iterator& ano) const {
 
 
 int EXT2_Inode::iterator::operator*() const {
+    return block_buf[level][indexs[level]];
+
     // _pos();
     // fflush(stdout);
     int ans = inode->nth_block(index);

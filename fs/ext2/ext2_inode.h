@@ -11,9 +11,28 @@ namespace EXT2
     public:
         class iterator {
             int index = 1;
+            int block_index=0;
+
+            // 块数计数器
+            int index_cnt = 0;
+            // buf0指向i->block
+            // 三级分别页面缓存，各1k
+            _u32 *block_buf[4] = {nullptr};
+            // 每个缓存块的真实块号
+            _u32 block_pos[4] = {0};
+            // 在每个寻址级别下的最大可寻址块数
+            // [0, 256+12, 256^2+256+12, 256^3+256^2+256+12]
+            _u32 max_blocks[4];
+            // 在每个缓存页面上的指针
+            _u32 indexs[4] = {0};
+            // 索引等级，可取值0 1 2 3
+            int level = 0;
+            // 每个间接索引块含的间接索引数
+            _u32 sub_blocks_in_block[4];
             EXT2_Inode* inode;
         public:
             iterator(EXT2_Inode* i);
+            ~iterator();
             iterator& operator++();
             iterator& operator++(int);
             bool operator==(const iterator& ano) const;
