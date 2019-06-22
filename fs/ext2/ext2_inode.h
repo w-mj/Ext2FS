@@ -18,7 +18,7 @@ namespace EXT2
             // 三级分别页面缓存，各1k
             _u32 *block_buf[4] = {nullptr, nullptr, nullptr, nullptr};
             // 每个缓存块的真实块号
-            _u32 block_pos[4] = {0, 0, 0,0 };
+            _u32 block_pos[4] = {0, 0, 0, 0};
             // 在每个寻址级别下的最大可寻址块数
             // [12, 256+12, 256^2+256+12, 256^3+256^2+256+12]
             _u32 max_blocks[4];
@@ -46,7 +46,7 @@ namespace EXT2
             const iterator& operator++(int);
             bool operator==(const iterator& ano) const;
             bool operator!=(const iterator& ano) const;
-            int operator*() ;
+            int operator*();
 
             friend class EXT2_Inode;
         };

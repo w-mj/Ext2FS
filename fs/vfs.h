@@ -32,6 +32,30 @@ namespace VFS
     class File;
 
     /**
+     * NAMEi
+     */
+    class NameI {
+    public:
+        std::string name;
+        NameI *next=nullptr, *prev=nullptr;
+        NameI(const std::string name, NameI *p=nullptr): name(name) {
+            if (p != nullptr) {
+                p->next = this;
+            }
+            prev = p;
+            next = nullptr;
+        }
+        ~NameI() {
+            if (next != nullptr)
+                next->prev = nullptr;
+            if (prev != nullptr)
+                prev->next = nullptr;
+            delete next;
+            delete prev;
+        }
+    };
+
+    /**
      * 一个目录项
      */
     class DEntry {
@@ -60,8 +84,10 @@ namespace VFS
         virtual bool empty()=0;  // 判断一个目录是否为空
 
         File *open(const std::string& name);
-
+        File *open();
         DEntry* get_child(const std::string& name);
+        DEntry* get_child(const NameI *namei, DEntry **path=nullptr);
+        DEntry *get_path(const NameI *namei, std::string* fname=nullptr);
     };
 
     enum {

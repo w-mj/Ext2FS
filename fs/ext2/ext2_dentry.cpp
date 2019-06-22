@@ -62,6 +62,13 @@ void EXT2_DEntry::load_children() {
                 EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
                         temp_str->inode, temp_str->file_type, 
                         std::string((char*)temp_str->name, temp_str->name_len));
+                // if (temp_str->inode == parent->inode_n) {
+                //     sub->inode = parent->inode; 
+                //     sub->sync = 0;
+                // } else if (temp_str->inode == inode_n) {
+                //     sub->inode = inode;
+                //     sub->sync = 0;
+                // }
                 _si(temp_str->rec_len);
                 children.push_back(sub);
             //}

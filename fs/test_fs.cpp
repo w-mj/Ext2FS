@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <stack>
 #include "ext2/ext2_fs.h"
 #include "dev/block_dev.h"
 #include "dev/mock_disk.h"
@@ -26,71 +27,89 @@ std::vector<std::string> split(const std::string& s, char sp) {
 
 struct OP {
     const char *name;
-    VFS::DEntry* (*op)(VFS::DEntry *, const std::vector<std::string>&);
+    VFS::DEntry* (*op)(VFS::DEntry *, VFS::NameI *, const std::vector<std::string>&);
 };
 
-VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+static void ls_one(VFS::DEntry *x, bool l) {
     using namespace std;
-    cwd->load_children();
-    for (auto& x: cwd->children) {
-        if (cmdd.size() == 2 && cmdd[1] == "-l") {
-            x->inflate();
-            switch (x->type) {
-                case VFS::Directory:
-                    cout << "d";
-                    break;
-                case VFS::RegularFile:
-                    cout << "-";
-                    break;
-                default:
-                    cout << "?";
-                    break;
-            }
-            cout << previlege_to_str(x->inode->mode) << " " << x->inode->uid << " " << x->inode->gid;
-            cout << " "  << x->inode->size << " " << x->inode->ctime << " " << x->name << endl;
+    if (l) {
+        x->inflate();
+        switch (x->type) {
+            case VFS::Directory:
+                cout << "d";
+                break;
+            case VFS::RegularFile:
+                cout << "-";
+                break;
+            default:
+                cout << "?";
+                break;
         }
-        else
-            cout << "(" << x->inode_n <<")"<< x->name << "  ";
+        cout << previlege_to_str(x->inode->mode) << " " << x->inode->uid << " " << x->inode->gid;
+        cout << " "  << x->inode->size << " " << x->inode->ctime << " " << x->name << endl;
+    } else {
+        cout << "(" << x->inode_n <<")"<< x->name << "  ";
+    }
+}
+
+VFS::DEntry *ls(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+    using namespace std;
+    auto t = cwd->get_child(target);
+    if (t == nullptr) {
+        cout << "No such file or directory. " << cmdd[cmdd.size() - 1] << endl;
+        return cwd;
+    }
+    if (t->type == VFS::Directory) {
+        t->load_children();
+        for (auto& x: t->children) {
+            ls_one(x, cmdd.size() == 2 && cmdd[1] == "-l");
+        }
+    } else  {
+        ls_one(t, cmdd.size() == 2 && cmdd[1] == "-l");
     }
     cout << endl;
+
     return cwd;
 }
 
-VFS::DEntry *cd(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+VFS::DEntry *cd(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
     using namespace std;
-    cwd->load_children();
-    list<VFS::DEntry*>::iterator it = cwd->children.begin();
-    VFS::DEntry *ans = cwd;
-    if (cmdd[1] == ".")
-        ;
-    else if (cmdd[1] == "..") {
-        if (cwd->parent != nullptr)
-            ans = cwd->parent;
-    } else  {
-        ans = cwd->get_child(cmdd[1]);
-        if (ans == nullptr) {
-            cout << "No such directory " << cmdd[1] << endl;
-            ans = cwd;
-        } else if (ans->type != VFS::Directory) {
-            cout << cmdd[1] << " is not a directory." << endl;
-            ans = cwd;
-        }
+    auto ans = cwd->get_child(target);
+    if (ans == nullptr) {
+        cout << "No such directory " << cmdd[1] << endl;
+        ans = cwd;
+    } else if (ans->type != VFS::Directory) {
+        cout << cmdd[1] << " is not a directory." << endl;
+        ans = cwd;
     }
     return ans;
 }
 
-VFS::DEntry *mkdir(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
-    cwd->mkdir(cmdd[1]);
+VFS::DEntry *mkdir(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+    std::string name;
+    VFS::DEntry *d = cwd->get_path(target, &name);
+
+    if (d == nullptr) {
+        std::cout << "No such directory " << name << std::endl;
+    }else 
+    d->mkdir(name);
     return cwd;
 }
 
-VFS::DEntry *touch(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
-    cwd->create(cmdd[1]);
+VFS::DEntry *touch(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+    std::string name;
+    VFS::DEntry *d = cwd->get_path(target, &name);
+
+    if (d == nullptr) {
+        std::cout << "No such directory " << name << std::endl;
+    }else 
+    d->create(name);
     return cwd;
 }
 
-VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
-    VFS::File *fe = cwd->open(cmdd[1]);
+VFS::DEntry *cat(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+    auto ans = cwd->get_child(target);
+    VFS::File *fe = ans->open();
     if (fe == nullptr)
         std::cout << "No such file " << cmdd[1] << std::endl;
     else if (fe->type != VFS::RegularFile) {
@@ -108,6 +127,7 @@ VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     }
     return cwd;
 }
+
 
 // void rm_r(VFS::DEntry *cwd) {
 //     _dbg_log("rm_r %d", cwd->inode_n);
@@ -127,8 +147,9 @@ VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 //     _dbg_log("rm_r finish");
 // }
 
-VFS::DEntry *rm(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
-    VFS::DEntry *to_del = cwd->get_child(cmdd[cmdd.size() - 1]);
+VFS::DEntry *rm(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+    VFS::DEntry *d;
+    VFS::DEntry *to_del = cwd->get_child(target, &d);
     if (to_del == nullptr) {
         std::cout << "No such file " << cmdd[cmdd.size() - 1] << std::endl;
     } else {
@@ -137,7 +158,7 @@ VFS::DEntry *rm(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
         } else {
             if (to_del->type == VFS::Directory)
                 to_del->unlink_children();
-            cwd->unlink(to_del);
+            d->unlink(to_del);
         }
     }
     return cwd;
@@ -152,6 +173,45 @@ OP ops[] = {
     {"rm", rm},
     {"unknown", nullptr}
 };
+
+
+VFS::NameI *parse_path(const std::string path) {
+    using namespace VFS;
+    NameI *ans = nullptr, *prev;
+    if (path[0] == '/')
+        ans = prev = new NameI("/");
+    else
+        ans = prev = new NameI(".");
+    printf("%x %x\n", ans->prev, ans->next);
+    std::vector<std::string> sp = split(path, '/');
+    for (const auto& x: sp) {
+        printf("++++++++++++++++++++++++++++++++++++\n");
+        _ss(x.c_str());
+        if (x.size() == 0)
+            continue;
+        if (x == ".")
+            continue;
+        if (x == "..") {
+            if (prev->prev == nullptr) {
+                goto error;
+            }
+            prev = prev->prev;
+            prev->next->prev = nullptr;
+            prev->next->next = nullptr;
+            delete prev->next;
+        } else if (ans == nullptr) {
+            ans = new NameI(x);
+            prev = ans;
+        } else {
+            prev = new NameI(x, prev);
+        }
+    }
+    _pos();
+    return ans;
+error:
+    delete ans;
+    return nullptr;
+}
 
 int main(void) {
     using namespace std;
@@ -193,13 +253,36 @@ int main(void) {
             }
             if (ops[i].op == nullptr)
                 cout << "Unknown command " << cmdd[0] << endl;
-            else
-                cwd = ops[i].op(cwd, cmdd);
+            else {
+                VFS::NameI *path = nullptr;
+                if (cmdd.size() > 1) {
+                    path = parse_path(cmdd[cmdd.size() - 1]);
+                } else {
+                    path = parse_path(".");
+                }
+                if (path == nullptr) {
+                    cout << "Wrong path " << cmdd[cmdd.size() - 1] << endl;
+                } else {
+                    cwd = ops[i].op(cwd, path, cmdd);
+                    delete path;
+                }
+            }
         }
         
-        if (cwd != nullptr)
-            cout << cwd->name << "$ ";
-        else
+        if (cwd != nullptr) {
+            std::stack<std::string> st;
+            VFS::DEntry *t = cwd;
+            while (t != t->parent) {
+                st.push(t->name);
+                t = t->parent;
+            }
+            cout << "/";
+            while (!st.empty()) {
+                cout << st.top() << "/";
+                st.pop();
+            }
+            cout << "$ ";
+        } else
             cout << "[umount]$ ";
     }
     dev->close();
