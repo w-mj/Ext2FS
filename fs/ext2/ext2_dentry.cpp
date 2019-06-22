@@ -62,7 +62,7 @@ void EXT2_DEntry::load_children() {
                 EXT2_DEntry *sub = new EXT2_DEntry(ext2_fs, this, 
                         temp_str->inode, temp_str->file_type, 
                         std::string((char*)temp_str->name, temp_str->name_len));
-                // _si(temp_str->rec_len);
+                _si(temp_str->rec_len);
                 children.push_back(sub);
             //}
             // std::cout << sub->name << " " << sub->inode_n << std::endl;
@@ -219,7 +219,7 @@ VFS::File *EXT2_DEntry::get_file() {
 }
 
 void EXT2_DEntry::unlink(VFS::DEntry *d) {
-    _dbg_log("current %d, del %d.", inode_n, d->inode_n);
+    _dbg_log("unlink sub current %d, del %d.", inode_n, d->inode_n);
     _error(type != VFS::Directory);
     load_children();
     if (d->type == VFS::Directory) {
@@ -230,8 +230,9 @@ void EXT2_DEntry::unlink(VFS::DEntry *d) {
     }
     d->unlink();  // 删除子项目
     children.remove(d);
+    delete d;
     write_children();
-
+    _dbg_log("unlink sub current %d, del %d. finish", inode_n, d->inode_n);
 }
 
 
@@ -255,8 +256,36 @@ void EXT2_DEntry::unlink() {
         ext2_fs->release_inode(inode_n);
         ext2_fs->write_gdt();
         ext2_fs->write_super();
-        return;
     }
+    _dbg_log("ulink %d ref cnt: %d type: %d. finish", inode_n, ext2_inode->i->links_count, type);
+}
+
+void EXT2_DEntry::unlink_children() {
+    _dbg_log("unlink chlidren current %d, del", inode_n);
+    _error(type != VFS::Directory);
+    load_children();
+    _pos();
+    for (auto d: children) {
+        if (d->inode_n == inode_n || d->inode_n == parent->inode_n)
+            continue;
+        if (d->type == VFS::Directory) {
+            ext2_inode->i->links_count--;  // 降低自己的引用链接
+            ext2_fs->gdt_list[d->inode_n / ext2_fs->sb->inodes_per_group]->get_gd()->used_dirs_count--;
+            d->unlink_children();
+        }
+        d->unlink();  // 删除子项目
+        delete d;
+    }
+    children.clear();
+    ext2_inode->write_inode();
+    ext2_fs->write_gdt();
+    write_children();
+    _dbg_log("unlink chlidren current %d. finish", inode_n);
+}
+
+bool EXT2_DEntry::empty() {
+    load_children();
+    return children.size() == 2;
 }
 
 

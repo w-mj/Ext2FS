@@ -94,18 +94,23 @@ VFS::DEntry *cat(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     return cwd;
 }
 
-void rm_r(VFS::DEntry *cwd) {
-    cwd->load_children();
-    for (auto x: cwd->children) {
-        if (x->inode_n == cwd->inode_n || x->inode_n == cwd->parent->inode_n)
-            continue;  // 跳过. 和..
-        if (x->type == VFS::Directory) {
-            rm_r(x);  // 递归删除
-        }
-        _pos();
-        cwd->unlink(x);
-    }
-}
+// void rm_r(VFS::DEntry *cwd) {
+//     _dbg_log("rm_r %d", cwd->inode_n);
+//     cwd->load_children();
+//     for (auto x: cwd->children) {
+//         _dbg_log("%s %d, parent %d", x->name.c_str(), x->inode_n, cwd->parent->inode_n);
+//         if (x->inode_n == cwd->inode_n || x->inode_n == cwd->parent->inode_n)
+//             continue;  // 跳过. 和..
+//         if (x->type == VFS::Directory) {
+//             x->unlink_children();
+//         } 
+//         _pos();
+//         _dbg_log("start unlink %d", x->inode_n);
+//         cwd->unlink(x);  // 删除空目录和文件
+//         _dbg_log("unlink %d finish", x->inode_n);
+//     }
+//     _dbg_log("rm_r finish");
+// }
 
 VFS::DEntry *rm(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     VFS::DEntry *to_del = cwd->get_child(cmdd[cmdd.size() - 1]);
@@ -116,7 +121,7 @@ VFS::DEntry *rm(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
             std::cout << cmdd[cmdd.size() - 1] << " is a directory." << std::endl;
         } else {
             if (to_del->type == VFS::Directory)
-                rm_r(to_del);
+                to_del->unlink_children();
             cwd->unlink(to_del);
         }
     }

@@ -14,6 +14,7 @@ namespace EXT2
 
         void write_children();
         VFS::File *get_file();
+    protected:
     public:
         EXT2_Inode* ext2_inode = nullptr;
 
@@ -26,8 +27,10 @@ namespace EXT2
 
         void mkdir(const std::string& name);
         void create(const std::string& name);
-        void unlink();  // 删除自己
         void unlink(VFS::DEntry *d);  // 删除子项目
+        void unlink();  // 删除自己
+        void unlink_children();
+        bool empty();
 
 
         ~EXT2_DEntry();
