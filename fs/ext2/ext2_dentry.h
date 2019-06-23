@@ -30,7 +30,10 @@ namespace EXT2
         void unlink(VFS::DEntry *d);  // 删除子项目
         void unlink();  // 删除自己
         void unlink_children();
+        // 在tar中创建自己的硬链接
         void link(DEntry *tar, const std::string& s="");
+        // 将本目录中的item移动到另一个目录中
+        void move(DEntry *dir, const std::string& new_name="");
         bool empty();
 
 

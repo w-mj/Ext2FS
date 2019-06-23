@@ -301,13 +301,18 @@ void EXT2_DEntry::link(DEntry *tar, const std::string& s) {
         ts = t->name;
     else
         ts = s;
-    EXT2_DEntry *new_e = new EXT2_DEntry(t->ext2_fs, t->parent, t->inode_n, t->type, ts);
-    load_children();
-    children.push_back(new_e);
-    write_children();
-    t->inflate();
-    t->ext2_inode->i->links_count++;
-    t->ext2_inode->write_inode();
+    EXT2_DEntry *new_e = new EXT2_DEntry(ext2_fs, parent, inode_n, type, ts);
+    t->load_children();
+    t->children.push_back(new_e);
+    t->write_children();
+    inflate();
+    ext2_inode->i->links_count++;
+    ext2_inode->write_inode();
+}
+
+void EXT2_DEntry::move(DEntry *dir, const std::string& new_name) {
+    link(dir, new_name);  // 在dir中创建item的硬链接
+    parent->unlink(this);  // 在父目录中删除自己
 }
 
 bool EXT2_DEntry::empty() {
