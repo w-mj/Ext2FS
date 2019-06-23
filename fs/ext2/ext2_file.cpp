@@ -97,7 +97,7 @@ _u32 EXT2_File::write(_u8 *buf, _u32 len) {
     write_len = this_write_len;
     while (write_len < len) {
         it++;  // 指向下一个块
-        block_n = *it;  // 下一个块号
+        block_n = *it;  // 下一个块号，其实这里可以自动分配空间，不用resize
         pos_in_fs = ext2_fs->block_to_pos(block_n);  // 下一个块的位置
         this_write_len = std::min(block_size, len - write_len);
         memcpy(buff.data, buf + write_len, this_write_len);

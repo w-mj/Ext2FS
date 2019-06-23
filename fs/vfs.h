@@ -30,6 +30,7 @@ namespace VFS
     class Inode;
     class FS;
     class File;
+    class DEntry;
 
     /**
      * NAMEi
@@ -38,6 +39,7 @@ namespace VFS
     public:
         std::string name;
         NameI *next=nullptr, *prev=nullptr;
+
         NameI(const std::string name, NameI *p=nullptr);
         ~NameI();
     };

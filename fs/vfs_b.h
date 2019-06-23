@@ -7,6 +7,12 @@
 #include <list>
 #include <string>
 
+/**
+ * !!!!!!!!!!!!!!
+ * !这个文件没有用!
+ * !!!!!!!!!!!!!!
+ */
+
 namespace VFS
 {
     class Denty {
