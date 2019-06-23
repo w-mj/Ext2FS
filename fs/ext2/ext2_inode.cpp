@@ -45,12 +45,13 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     ctime = i->ctime;
     blkbits = 0;
     version = i->generation;
-    blocks = i->blocks;
-    bytes = 0;
     sock = 1;
     inode_n = n;
     ext2_fs = fs;
     blocks = i->blocks / (ext2_fs->block_size / 512);
+    bytes = size % blocks;
+    for (int t = blocks; t < N_BLOCKS; t++)
+        i->block[t] = 0;
 }
 
 _u32 EXT2_Inode::byte_in_block(_u32 b) {
@@ -97,6 +98,7 @@ void EXT2_Inode::write_inode() {
     _dbg_log("inode %d, size %d", inode_n, i->size);
     _u32 inode_pos = ext2_fs->inode_to_pos(inode_n);
     MM::Buf buf(sizeof(EXT2::Inode));
+    i->blocks = blocks * (ext2_fs->block_size / 512);
     memcpy(buf.data, i, sizeof(EXT2::Inode));
     // _sa(buf.data, sizeof(EXT2::Inode));
     ext2_fs->dev->write(buf, inode_pos, sizeof(EXT2::Inode));
@@ -147,6 +149,7 @@ EXT2_Inode::iterator::iterator(EXT2_Inode* i) {
 
 EXT2_Inode::iterator EXT2_Inode::iterator::getInstance(EXT2_Inode *i, _u32 blocks) {
     EXT2_Inode::iterator it(i);
+    _dbg_log("get instance %d", blocks);
     it.index_cnt = blocks;  // 最大值
     if (blocks == 0) {
         it.level = 0;
@@ -178,6 +181,7 @@ EXT2_Inode::iterator EXT2_Inode::iterator::getInstance(EXT2_Inode *i, _u32 block
 }
 
 EXT2_Inode::iterator::~iterator() {
+    write_back();
     delete block_buf[1];
     delete block_buf[2];
     delete block_buf[3];
@@ -187,16 +191,45 @@ void EXT2_Inode::iterator::load_buf(int t) {
     _dbg_log("load buf level:%d indexs[%d,%d,%d,%d]", level, indexs[0], indexs[1], indexs[2], indexs[3]);
     EXT2_FS *fs = inode->ext2_fs;
     while (t < level) {
+        write_back();  // 在换页之前尝试将修改写入磁盘
         _u32 new_block_pos = block_buf[t][indexs[t]];
-        MM::Buf buf(fs->block_size);
-        // TODO: Dirty save
-        block_pos[t + 1] = new_block_pos;
-        fs->dev->read(buf, fs->block_to_pos(new_block_pos), fs->block_size);
         if (block_buf[t + 1] == nullptr)
             block_buf[t + 1] = new _u32[sub_blocks_in_block[level]];
-        memcpy(block_buf[t + 1], buf.data, sub_blocks_in_block[t]);
+        if (new_block_pos == 0) {
+            _dbg_log("auto alloc data block");
+            // 如果没有下一个数据块，则分配一个
+            new_block_pos = fs->alloc_block();
+            block_buf[t][indexs[t]] = new_block_pos;
+            dirty[t] = true; 
+            block_pos[t + 1] = new_block_pos;
+            memset(block_buf[t + 1], 0, sizeof(block_buf[t + 1]));  // 新块数据清零
+        } else {
+            MM::Buf buf(fs->block_size);
+            fs->dev->read(buf, fs->block_to_pos(new_block_pos), fs->block_size);
+            memcpy(block_buf[t + 1], buf.data, sizeof(block_buf[t + 1]));
+        }
         t++;
     }
+}
+
+void EXT2_Inode::iterator::write_back() {
+    if (dirty[0]) {
+        memcpy(inode->i->block, block_buf[0], sizeof(_u32) * EXT2::N_BLOCKS);
+        dirty[0] = false;
+    }
+    EXT2_FS *fs = inode->ext2_fs;
+    MM::Buf *buf=nullptr;
+    for (int t = 1; t < 4; t++) {
+        if (dirty[t]) {
+            if (buf == nullptr)
+                buf = new MM::Buf(fs->block_size);
+            _u32 pos = fs->block_to_pos(block_pos[t]);
+            memmove(buf->data, block_buf[t], sizeof(block_buf[t]));
+            fs->dev->write(*buf, pos, fs->block_size);
+            dirty[t] = false;
+        }
+    }
+    delete buf;
 }
 
 
@@ -269,11 +302,12 @@ int EXT2_Inode::iterator::operator*() {
     if (block_buf[level] == nullptr)
         load_buf(0);
     int ans = block_buf[level][indexs[level]];
+    if (ans == 0) {
+        _dbg_log("auto alloc data block");
+        ans = inode->ext2_fs->alloc_block();
+        block_buf[level][indexs[level]] = ans;
+        dirty[level] = true;
+    }
     _si(ans);
-    return ans;
-    // _pos();
-    // fflush(stdout);
-    // int ans = inode->nth_block(index);
-    // std::cout <<ans << std::endl;
     return ans;
 }

@@ -42,15 +42,7 @@ VFS::NameI *parse_path(const std::string path) {
             continue;
         if (x == ".")
             continue;
-        if (x == "..") {
-            if (prev->prev == nullptr) {
-                goto error;
-            }
-            prev = prev->prev;
-            prev->next->prev = nullptr;
-            prev->next->next = nullptr;
-            delete prev->next;
-        } else if (ans == nullptr) {
+        if (ans == nullptr) {
             ans = new NameI(x);
             prev = ans;
         } else {
@@ -115,6 +107,10 @@ VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *cd(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     using namespace std;
+    if (cmdd[cmdd.size() - 1] == ".")
+        return cwd;
+    if (cmdd[cmdd.size() - 1] == "..")
+        return cwd->parent;
     VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     auto ans = cwd->get_child(target);
     if (ans == nullptr) {

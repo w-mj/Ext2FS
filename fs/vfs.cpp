@@ -43,7 +43,13 @@ DEntry *DEntry::get_path(const NameI *namei, std::string* fname) {
     }
     
     while (namei->next != nullptr && ans != nullptr) {
-        ans = ans->get_child(namei->name);
+        if (namei->name == ".") {
+            ;
+        } else if (namei->name == "..") {
+            ans = ans->parent;
+        } else {
+            ans = ans->get_child(namei->name);
+        }
         namei = namei->next;
     }
     if (fname != nullptr) {

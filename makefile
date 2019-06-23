@@ -28,7 +28,7 @@ build: .depend $(OBJ_FILE)
 # 	echo $(INC_FLAG)
 
 $(BIN_FILE): $(OBJ_FILE)# $(MAIN_FILE)
-	g++ $(CC_FLAG) $^ -o $@ 
+	g++ $(CC_FLAG) $^ -g -o $@ 
 
 .depend: $(SRC_FILE)
 	g++ -MM $(CC_FLAG) $^ > $@
@@ -37,7 +37,7 @@ $(BIN_FILE): $(OBJ_FILE)# $(MAIN_FILE)
 include .depend
 
 $(OBJ_PATH)/%.o:
-	g++ -c $<  $(CC_FLAG) -o $@
+	g++ -c $<  $(CC_FLAG) -g -o $@
 
 # $(BIN_PATH)/%.out:
 # 	TEST_NAME = $(notdir $@)

@@ -259,11 +259,11 @@ void EXT2_DEntry::unlink() {
         // if (type==VFS::Directory)
         //     ext2_inode->i->size = 1024;
         ext2_inode->i->links_count = 0;
-        ext2_inode->write_inode();
         ext2_fs->release_inode(inode_n);
         ext2_fs->write_gdt();
         ext2_fs->write_super();
     }
+    ext2_inode->write_inode();
     _dbg_log("ulink %d ref cnt: %d type: %d. finish", inode_n, ext2_inode->i->links_count, type);
 }
 

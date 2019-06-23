@@ -29,11 +29,17 @@ namespace EXT2
             // 每个间接索引块含的间接索引数
             // [12, 256, 256, 256]
             _u32 sub_blocks_in_block[4];
+            // 脏缓存
+            bool dirty[4] = {false, false, false, false};
+
+
             EXT2_Inode* inode;
 
             // 从磁盘加载块缓存
             // from可取0, 1, 2，表示加载从第几级间址开始加载
             void load_buf(int from=0);
+
+            void write_back(); // 写回磁盘
             iterator(EXT2_Inode* i);
 
         public:
@@ -54,7 +60,6 @@ namespace EXT2
             friend class EXT2_Inode;
         };
     private:
-        _u32 blocks;
     public:
         _u32 inode_n;
         EXT2::Inode* i;

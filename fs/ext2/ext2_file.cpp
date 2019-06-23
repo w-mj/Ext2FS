@@ -109,25 +109,32 @@ _u32 EXT2_File::write(_u8 *buf, _u32 len) {
 }
 
 void EXT2_File::resize(_u32 new_size) {
-    if (size == new_size)
+    EXT2_FS *fs = ext2_fs;
+    _u32 current_block = ext2_inode->blocks;
+    _u32 target_block = new_size / fs->block_size + (new_size % fs->block_size > 0);
+    _dbg_log("resize from %d to %d", current_block, target_block);
+    if (target_block == current_block) {
         return;
-    if (ext2_inode->i->blocks >= 13)
-        _error_s(ext2_inode->i->blocks, "not support big file yet");
-    _u32 current_blocks = ext2_inode->i->blocks;
-    _u32 target_blocks = new_size / ext2_fs->block_size + ((new_size % ext2_fs->block_size) > 0);
-    if (new_size < size) {
-        while (target_blocks < current_blocks) {
-            current_blocks--;
-            if (ext2_inode->i->block[current_blocks] == 0)
-                continue;
-            ext2_fs->release_block(ext2_inode->i->block[current_blocks]);  // 循环释放当前块
-            ext2_inode->i->block[current_blocks] = 0;
+    }
+    auto it = ext2_inode->end(); 
+    if (target_block > current_block) {
+        // 分配空间
+        while (target_block != current_block) {
+            *it;  // 利用解引用自动分配空间
+            it++;
+            current_block++;
         }
     } else {
-        while (target_blocks > current_blocks) {
-            ext2_inode->i->block[current_blocks - 1] = ext2_fs->alloc_block();
-            current_blocks++;
+        // 缩小空间
+        while (target_block != current_block) {
+            it--;
+            _u32 to_release = *it;
+            fs->release_block(to_release);
+            current_block--;
         }
     }
-    ext2_inode->i->blocks = current_blocks;
+    size = new_size;
+    ext2_inode->blocks = target_block;
+    ext2_fs->write_gdt();
+    ext2_fs->write_super();
 }

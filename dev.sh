@@ -22,7 +22,7 @@ test_module() {
     if [ ! $? -eq 0 ]; then
         exit
     fi
-    g++ $path obj/*.o -I. -Iinclude -DDEBUG -o 'bin/test_'$1'.out'
+    g++ $path obj/*.o -I. -Iinclude -DDEBUG -g -o 'bin/test_'$1'.out'
     set +x
 
     echo -e "Run test case.\n=======\n"
