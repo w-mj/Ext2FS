@@ -50,7 +50,7 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     ext2_fs = fs;
     blocks = i->blocks / (ext2_fs->block_size / 512);
     bytes = size % ext2_fs->block_size;
-    for (int t = blocks; t < N_BLOCKS; t++) {
+    for (int t = blocks; !S_ISLNK(mode) && t < N_BLOCKS; t++) {
         i->block[t] = 0;
     }
 }

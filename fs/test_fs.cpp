@@ -8,54 +8,7 @@
 #include "dev/mock_disk.h"
 #include "delog/delog.h"
 #include "stat.h"
-
-
-std::vector<std::string> split(const std::string& s, char sp) {
-    int i = 0, l = 0;
-    std::vector<std::string> res;
-    while (i < s.size()) {
-        if (s[i] == sp) {
-            if (i != l)
-                res.push_back(s.substr(l, i - l));
-            l = i + 1;
-        }
-        i++;
-    }
-    if (i != l)
-        res.push_back(s.substr(l, i - l));
-    return res;
-}
-
-VFS::NameI *parse_path(const std::string path) {
-    using namespace VFS;
-    NameI *ans = nullptr, *prev;
-    if (path[0] == '/')
-        ans = prev = new NameI("/");
-    else
-        ans = prev = new NameI(".");
-    printf("%x %x\n", ans->prev, ans->next);
-    std::vector<std::string> sp = split(path, '/');
-    for (const auto& x: sp) {
-        // printf("++++++++++++++++++++++++++++++++++++\n");
-        _ss(x.c_str());
-        if (x.size() == 0)
-            continue;
-        if (x == ".")
-            continue;
-        if (ans == nullptr) {
-            ans = new NameI(x);
-            prev = ans;
-        } else {
-            prev = new NameI(x, prev);
-        }
-    }
-    _pos();
-    return ans;
-error:
-    delete ans;
-    return nullptr;
-}
-
+#include "delog/common.h"
 
 struct OP {
     const char *name;
@@ -89,7 +42,7 @@ static void ls_one(VFS::DEntry *x, bool l) {
 
 VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace std;
-    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     auto t = cwd->get_child(target);
     if (t == nullptr) {
         cout << "No such file or directory. " << cmdd[cmdd.size() - 1] << endl;
@@ -114,7 +67,7 @@ VFS::DEntry *cd(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
         return cwd;
     if (cmdd[cmdd.size() - 1] == "..")
         return cwd->parent;
-    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     auto ans = cwd->get_child(target);
     if (ans == nullptr) {
         cout << "No such directory " << cmdd[1] << endl;
@@ -129,7 +82,7 @@ VFS::DEntry *cd(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *mkdir(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     std::string name;
-    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     VFS::DEntry *d = cwd->get_path(target, &name);
 
     if (d == nullptr) {
@@ -142,7 +95,7 @@ VFS::DEntry *mkdir(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *touch(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     std::string name;
-    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     VFS::DEntry *d = cwd->get_path(target, &name);
 
     if (d == nullptr) {
@@ -154,8 +107,10 @@ VFS::DEntry *touch(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
 }
 
 VFS::DEntry *cat(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
-    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);    
+    VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);    
     auto ans = cwd->get_child(target);
+    while (ans->type == VFS::SymbolLink)
+        ans = ans->follow();
     
     VFS::File *fe = ans->open();
     if (fe == nullptr)
@@ -179,7 +134,7 @@ VFS::DEntry *cat(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *rm(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     VFS::DEntry *d;
-    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     VFS::DEntry *to_del = cwd->get_child(target, &d);
     if (to_del == nullptr) {
         std::cout << "No such file " << cmdd[cmdd.size() - 1] << std::endl;
@@ -198,7 +153,7 @@ VFS::DEntry *rm(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *link(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace VFS;
-    VFS::NameI *from = parse_path(cmdd[cmdd.size() - 2]);
+    VFS::NameI *from = VFS::NameI::from_str(cmdd[cmdd.size() - 2]);
 
     DEntry *fe = cwd->get_child(from);
     if (fe == nullptr) {
@@ -207,7 +162,7 @@ VFS::DEntry *link(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     }
     DEntry *te;
     std::string s;
-    NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     if ((te = cwd->get_path(target, &s)) == nullptr) {
         _log_info("%s is already exists.", cmdd[2].c_str());
         return cwd;
@@ -218,7 +173,7 @@ VFS::DEntry *link(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *mv(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace VFS;
-    VFS::NameI *from = parse_path(cmdd[cmdd.size() - 2]);
+    VFS::NameI *from = VFS::NameI::from_str(cmdd[cmdd.size() - 2]);
 
     DEntry *fe = cwd->get_child(from);
     if (fe == nullptr) {
@@ -227,7 +182,7 @@ VFS::DEntry *mv(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     }
     DEntry *te;
     std::string s;
-    NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     if ((te = cwd->get_path(target, &s)) == nullptr) {
         _log_info("%s is not exists.", cmdd[2].c_str());
         return cwd;
@@ -238,7 +193,7 @@ VFS::DEntry *mv(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *cp(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace VFS;
-    VFS::NameI *from = parse_path(cmdd[cmdd.size() - 2]);
+    VFS::NameI *from = VFS::NameI::from_str(cmdd[cmdd.size() - 2]);
 
     DEntry *fe = cwd->get_child(from);
     if (fe == nullptr) {
@@ -247,7 +202,7 @@ VFS::DEntry *cp(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     }
     DEntry *te;
     std::string s;
-    NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     if ((te = cwd->get_path(target, &s)) == nullptr) {
         _log_info("%s is not exists.", cmdd[2].c_str());
         return cwd;
@@ -258,7 +213,7 @@ VFS::DEntry *cp(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 
 VFS::DEntry *symlink(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace VFS;
-    VFS::NameI *from = parse_path(cmdd[cmdd.size() - 2]);
+    VFS::NameI *from = VFS::NameI::from_str(cmdd[cmdd.size() - 2]);
 
     DEntry *fe = cwd->get_child(from);
     if (fe == nullptr) {
@@ -267,7 +222,7 @@ VFS::DEntry *symlink(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     }
     DEntry *te;
     std::string s;
-    NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     if ((te = cwd->get_path(target, &s)) == nullptr) {
         _log_info("%s is not exists.", cmdd[2].c_str());
         return cwd;
@@ -334,10 +289,10 @@ int main(void) {
             else {
                 VFS::NameI *path = nullptr;
                 if (cmdd.size() > 1) {
-                    path = parse_path(cmdd[cmdd.size() - 1]);
+                    path = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
                 } else {
                     cmdd.push_back(".");
-                    path = parse_path(".");
+                    path = VFS::NameI::from_str(".");
                 }
                 if (path == nullptr) {
                     cout << "Wrong path " << cmdd[cmdd.size() - 1] << endl;

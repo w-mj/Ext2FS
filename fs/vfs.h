@@ -41,6 +41,8 @@ namespace VFS
         NameI *next=nullptr, *prev=nullptr;
 
         NameI(const std::string name, NameI *p=nullptr);
+
+        static NameI *from_str(const std::string &);
         ~NameI();
     };
 
@@ -49,8 +51,8 @@ namespace VFS
      */
     class DEntry {
     private:
-        virtual File* get_file()=0;
     protected:
+        virtual File* get_file()=0;
     public:
         FS* fs;
         _u32 inode_n;  // inode编号，懒加载
@@ -87,6 +89,8 @@ namespace VFS
         virtual VFS::DEntry *copy(DEntry *dir, const std::string& new_name="")=0;
         // 在当前文件夹下创建另一个文件file的符号链接
         virtual VFS::DEntry *symlink(DEntry *file, const std::string& new_name="")=0;
+        // 找到一个符号链接指向的文件
+        virtual VFS::DEntry *follow()=0;
 
         File *open(const std::string& name);
         DEntry* get_child(const std::string& name);

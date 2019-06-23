@@ -1,9 +1,11 @@
 #include "vfs.h"
 #include "delog/delog.h"
+#include "delog/common.h"
 #include "stat.h"
 #include <string>
 #include <sstream>
 #include <stack>
+#include <vector>
 
 using namespace VFS;
 
@@ -108,6 +110,36 @@ NameI::~NameI() {
 
 void VFS::File::close() {
     delete this;  // 恶魔操作
+}
+
+VFS::NameI *VFS::NameI::from_str(const std::string& path) {
+    using namespace VFS;
+    NameI *ans = nullptr, *prev;
+    if (path[0] == '/')
+        ans = prev = new NameI("/");
+    else
+        ans = prev = new NameI(".");
+    printf("%x %x\n", ans->prev, ans->next);
+    std::vector<std::string> sp = split(path, '/');
+    for (const auto& x: sp) {
+        // printf("++++++++++++++++++++++++++++++++++++\n");
+        _ss(x.c_str());
+        if (x.size() == 0)
+            continue;
+        if (x == ".")
+            continue;
+        if (ans == nullptr) {
+            ans = new NameI(x);
+            prev = ans;
+        } else {
+            prev = new NameI(x, prev);
+        }
+    }
+    _pos();
+    return ans;
+error:
+    delete ans;
+    return nullptr;
 }
 
 _u8 VFS::mode_to_type(_u8 mode) {

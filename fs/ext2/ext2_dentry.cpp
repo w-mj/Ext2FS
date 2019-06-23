@@ -105,6 +105,7 @@ static inline int cal_name_len(int s) {
 }
 
 void EXT2_DEntry::write_children() {
+    _error(type != VFS::Directory);
     DirEntry new_disk_entry[1];
     EXT2_File parent_body(this, this->ext2_inode);
     _u32 all_length = 0;
@@ -130,8 +131,7 @@ void EXT2_DEntry::write_children() {
 }
 
 VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
-    if (type != VFS::Directory)
-        _error(type);
+    _error(type != VFS::Directory);
     EXT2_GD *new_dir_gd = nullptr;
     _u32 new_i_n = ext2_fs->alloc_inode(&new_dir_gd);
     new_dir_gd->get_gd()->used_dirs_count++;
@@ -194,9 +194,8 @@ VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
     return new_entry;
 }
 
-EXT2_DEntry *EXT2_DEntry::create(const std::string& name) {
-    if (type != VFS::Directory)
-        _error(type);
+VFS::DEntry *EXT2_DEntry::create(const std::string& name) {
+    _error(type != VFS::Directory);
     _pos();
     inflate();
     _u32 new_i_n = ext2_fs->alloc_inode();
@@ -228,6 +227,8 @@ EXT2_DEntry *EXT2_DEntry::create(const std::string& name) {
 }
 
 VFS::File *EXT2_DEntry::get_file() {
+    if (type==VFS::SymbolLink)
+        return follow()->open();
     return new EXT2_File(this);
 }
 
@@ -342,7 +343,7 @@ VFS::DEntry* EXT2_DEntry::copy(DEntry *dir, const std::string& new_name) {
 }
 
 VFS::DEntry *EXT2_DEntry::symlink(DEntry *file, const std::string& new_name) {
-    EXT2_DEntry *new_entry = create(new_name==""?file->name:new_name);
+    EXT2_DEntry *new_entry = static_cast<EXT2_DEntry*>(create(new_name==""?file->name:new_name));
     _pos();
     new_entry->inode->mode = S_IFLNK | S_IRWXG | S_IRWXO | S_IRWXU;
     new_entry->type = VFS::SymbolLink;
@@ -361,6 +362,25 @@ VFS::DEntry *EXT2_DEntry::symlink(DEntry *file, const std::string& new_name) {
     write_children();
     _d_end();
     return new_entry;
+}
+
+VFS::DEntry *EXT2_DEntry::follow() {
+    _dbg_log("start");
+    inflate();
+    char buf[inode->size];
+    if (inode->size <= 60) {
+        memmove(buf, ext2_inode->i->block, inode->size);
+    } else {
+        VFS::File *f = open();
+        f->read((_u8*)buf, inode->size);
+        f->close();
+    }
+    _ss(buf);
+    VFS::NameI *path = VFS::NameI::from_str(std::string(buf, inode->size));
+    VFS::DEntry *ans = parent->get_child(path);
+    delete path;
+    _d_end();
+    return ans;
 }
 
 

@@ -26,7 +26,7 @@ namespace EXT2
         void load_children();
 
         VFS::DEntry* mkdir(const std::string& name);
-        EXT2_DEntry* create(const std::string& name);
+        VFS::DEntry* create(const std::string& name);
         void unlink(VFS::DEntry *d);  // 删除子项目
         void unlink();  // 删除自己
         void unlink_children();
@@ -38,6 +38,8 @@ namespace EXT2
 
         VFS::DEntry *copy(DEntry *dir, const std::string& new_name);
         VFS::DEntry *symlink(DEntry *file, const std::string& new_name="");
+
+        VFS::DEntry *follow();
 
         ~EXT2_DEntry();
     };
