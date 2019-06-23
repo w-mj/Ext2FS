@@ -63,19 +63,26 @@ namespace VFS
         virtual void inflate()=0;
         virtual void load_children()=0;
 
+        // 在当前目录项创建文件夹
         virtual void mkdir(const std::string& new_name)=0;
+        // 在当前目录下创建空文件
         virtual void create(const std::string& new_name)=0;
-        virtual void unlink(DEntry*)=0;  // 删除子项目，修改自己与子文件夹的引用关系
-        virtual void unlink()=0;  // 删除自己，释放空间
+        // 在当前目录下删除子项目，修改自己与子文件夹的引用关系
+        virtual void unlink(DEntry*)=0;
+        // 删除自己，释放空间，会由ulink(DEntry*)调用
+        virtual void unlink()=0;  
+        // 删除一个目录下的所有项目
         virtual void unlink_children()=0;
-        virtual bool empty()=0;  // 判断一个目录是否为空
+        // 判断一个目录是否为空
+        virtual bool empty()=0; 
         // 在另一个目录项中创建自己的硬链接
         virtual void link(DEntry *dir, const std::string& s="")=0;
-        // 自己移动到另一个目录中
+        // 把自己移动到另一个目录中
         virtual void move(DEntry *dir, const std::string& new_name="")=0;
+        // 打开文件
+        File *open();
 
         File *open(const std::string& name);
-        File *open();
         DEntry* get_child(const std::string& name);
         DEntry* get_child(const NameI *namei, DEntry **path=nullptr);
         DEntry *get_path(const NameI *namei, std::string* fname=nullptr);

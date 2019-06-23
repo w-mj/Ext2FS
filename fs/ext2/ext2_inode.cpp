@@ -211,7 +211,7 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
     if (indexs[level] >= sub_blocks_in_block[level]) {
         // 小升级! 
         int t = level;
-        while (t > 0 && indexs[t] >= sub_blocks_in_block[level]) {
+        while (t > 0 && indexs[t] >= sub_blocks_in_block[t]) {
             // 重设指针
             indexs[t - 1]++;
             indexs[t] = 0;
@@ -225,6 +225,26 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
         // t级所指向的位置就是t+1级的地址
         load_buf(t);
     }
+    return *this;
+}
+
+const EXT2_Inode::iterator& EXT2_Inode::iterator::operator--(int) {
+    return --(*this);
+}
+
+EXT2_Inode::iterator& EXT2_Inode::iterator::operator--() {
+    if (index_cnt == 0)
+        return *this;
+    index_cnt--;
+    int t = level;
+    while (t >= 0 && indexs[t] == 0) {
+        indexs[t] = sub_blocks_in_block[t] - 1;
+        t--;
+    }
+    indexs[t]--;
+    if (t == 0)
+        level = indexs[t] < 12? 0: indexs[t] - 11;
+    load_buf(t);
     return *this;
 }
 

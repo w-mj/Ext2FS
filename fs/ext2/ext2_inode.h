@@ -44,6 +44,9 @@ namespace EXT2
             iterator& operator++();
             // a++
             const iterator& operator++(int);
+            iterator& operator--();
+            const iterator& operator--(int);
+
             bool operator==(const iterator& ano) const;
             bool operator!=(const iterator& ano) const;
             int operator*();
