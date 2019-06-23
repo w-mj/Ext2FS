@@ -32,7 +32,7 @@ void EXT2_Inode::print() {
 
 EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     this->i = i;
-    ino = 0;
+    ino = n;
     counter = 0;
     mode = i->mode;
     nlink = i->links_count;
@@ -49,9 +49,10 @@ EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {
     inode_n = n;
     ext2_fs = fs;
     blocks = i->blocks / (ext2_fs->block_size / 512);
-    bytes = size % blocks;
-    for (int t = blocks; t < N_BLOCKS; t++)
+    bytes = size % ext2_fs->block_size;
+    for (int t = blocks; t < N_BLOCKS; t++) {
         i->block[t] = 0;
+    }
 }
 
 _u32 EXT2_Inode::byte_in_block(_u32 b) {
@@ -99,6 +100,7 @@ void EXT2_Inode::write_inode() {
     _u32 inode_pos = ext2_fs->inode_to_pos(inode_n);
     MM::Buf buf(sizeof(EXT2::Inode));
     i->blocks = blocks * (ext2_fs->block_size / 512);
+    i->size = size;
     memcpy(buf.data, i, sizeof(EXT2::Inode));
     // _sa(buf.data, sizeof(EXT2::Inode));
     ext2_fs->dev->write(buf, inode_pos, sizeof(EXT2::Inode));
@@ -213,6 +215,7 @@ void EXT2_Inode::iterator::load_buf(int t) {
 }
 
 void EXT2_Inode::iterator::write_back() {
+    _dbg_log("write back");
     if (dirty[0]) {
         memcpy(inode->i->block, block_buf[0], sizeof(_u32) * EXT2::N_BLOCKS);
         dirty[0] = false;

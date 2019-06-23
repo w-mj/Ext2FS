@@ -233,6 +233,26 @@ VFS::DEntry *mv(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     return cwd;
 }
 
+VFS::DEntry *cp(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    using namespace VFS;
+    VFS::NameI *from = parse_path(cmdd[cmdd.size() - 2]);
+
+    DEntry *fe = cwd->get_child(from);
+    if (fe == nullptr) {
+        _log_info("%s is not exists.", cmdd[1].c_str());
+        return cwd;
+    }
+    DEntry *te;
+    std::string s;
+    NameI *target = parse_path(cmdd[cmdd.size() - 1]);
+    if ((te = cwd->get_path(target, &s)) == nullptr) {
+        _log_info("%s is already exists.", cmdd[2].c_str());
+        return cwd;
+    }
+    fe->copy(te, s);
+    return cwd;
+}
+
 OP ops[] = {
     {"ls", ls},
     {"cd", cd},
@@ -242,6 +262,7 @@ OP ops[] = {
     {"rm", rm},
     {"link", link},
     {"mv", mv},
+    {"cp", cp},
     {"unknown", nullptr}
 };
 

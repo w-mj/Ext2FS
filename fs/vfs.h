@@ -64,9 +64,9 @@ namespace VFS
         virtual void load_children()=0;
 
         // 在当前目录项创建文件夹
-        virtual void mkdir(const std::string& new_name)=0;
+        virtual VFS::DEntry* mkdir(const std::string& new_name)=0;
         // 在当前目录下创建空文件
-        virtual void create(const std::string& new_name)=0;
+        virtual VFS::DEntry* create(const std::string& new_name)=0;
         // 在当前目录下删除子项目，修改自己与子文件夹的引用关系
         virtual void unlink(DEntry*)=0;
         // 删除自己，释放空间，会由ulink(DEntry*)调用
@@ -76,11 +76,13 @@ namespace VFS
         // 判断一个目录是否为空
         virtual bool empty()=0; 
         // 在另一个目录项中创建自己的硬链接
-        virtual void link(DEntry *dir, const std::string& s="")=0;
+        virtual VFS::DEntry *link(DEntry *dir, const std::string& s="")=0;
         // 把自己移动到另一个目录中
-        virtual void move(DEntry *dir, const std::string& new_name="")=0;
+        virtual VFS::DEntry *move(DEntry *dir, const std::string& new_name="")=0;
         // 打开文件
         File *open();
+        // 把自己复制到另一个文件夹中，新文件夹中文件的Entry
+        virtual VFS::DEntry *copy(DEntry *dir, const std::string& new_name="")=0;
 
         File *open(const std::string& name);
         DEntry* get_child(const std::string& name);

@@ -126,7 +126,7 @@ void EXT2_DEntry::write_children() {
     }
 }
 
-void EXT2_DEntry::mkdir(const std::string& new_name) {
+VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
     if (type != VFS::Directory)
         _error(type);
     EXT2_GD *new_dir_gd = nullptr;
@@ -188,12 +188,14 @@ void EXT2_DEntry::mkdir(const std::string& new_name) {
     // ext2_fs->sb->
     ext2_fs->write_gdt();
     ext2_fs->write_super();
+    return new_entry;
 }
 
-void EXT2_DEntry::create(const std::string& name) {
+VFS::DEntry *EXT2_DEntry::create(const std::string& name) {
     if (type != VFS::Directory)
         _error(type);
     _pos();
+    inflate();
     _u32 new_i_n = ext2_fs->alloc_inode();
     _error(new_i_n == 0);
     EXT2::Inode *new_disk_i = new EXT2::Inode();
@@ -212,13 +214,13 @@ void EXT2_DEntry::create(const std::string& name) {
     new_i->write_inode();  // 新Inode写入磁盘
     EXT2_DEntry *new_entry = new EXT2_DEntry(ext2_fs, this, new_i_n, VFS::RegularFile, name);
     new_entry->ext2_inode = new_i;
-
     load_children();
     children.push_back(new_entry);
     write_children();
 
     ext2_fs->write_gdt();
     ext2_fs->write_super();
+    return new_entry;
 }
 
 VFS::File *EXT2_DEntry::get_file() {
@@ -290,10 +292,10 @@ void EXT2_DEntry::unlink_children() {
     _dbg_log("unlink chlidren current %d. finish", inode_n);
 }
 
-void EXT2_DEntry::link(DEntry *tar, const std::string& s) {
+VFS::DEntry *EXT2_DEntry::link(DEntry *tar, const std::string& s) {
     if (tar->fs != fs) {
         _log_info("[EXT2]: Hard Link must in the same file system.");
-        return;
+        return nullptr;
     }
     EXT2_DEntry *t = dynamic_cast<EXT2_DEntry*>(tar);
     std::string ts;
@@ -308,16 +310,31 @@ void EXT2_DEntry::link(DEntry *tar, const std::string& s) {
     inflate();
     ext2_inode->i->links_count++;
     ext2_inode->write_inode();
+    return new_e;
 }
 
-void EXT2_DEntry::move(DEntry *dir, const std::string& new_name) {
-    link(dir, new_name);  // 在dir中创建item的硬链接
+VFS::DEntry *EXT2_DEntry::move(DEntry *dir, const std::string& new_name) {
+    auto ans = link(dir, new_name);  // 在dir中创建item的硬链接
     parent->unlink(this);  // 在父目录中删除自己
+    return ans;
 }
 
 bool EXT2_DEntry::empty() {
     load_children();
     return children.size() == 2;
+}
+
+VFS::DEntry* EXT2_DEntry::copy(DEntry *dir, const std::string& new_name) {
+    VFS::DEntry *new_entry = dir->create(new_name==""?this->name:new_name);
+    VFS::File *old_f = this->open();
+    VFS::File *new_f = new_entry->open();
+    _u8 buf[old_f->size];
+    old_f->read(buf, old_f->size);
+    new_f->write(buf, old_f->size);
+    // dynamic_cast<EXT2_DEntry*>(new_entry)->ext2_inode->write_inode();
+    delete old_f;
+    delete new_f;
+    return new_entry;
 }
 
 

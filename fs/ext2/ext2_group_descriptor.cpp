@@ -48,7 +48,6 @@ _u8 *EXT2_GD::get_block_bitmap() {
 _u32 EXT2_GD::alloc_inode() {
     if (gd->free_inodes_count == 0)
         return 0;
-    _pos();
     get_inode_bitmap();
     for (int i = 0; i < fs->block_size; i++) {
         if (inode_bitmap[i] != (_u8)0xff) {

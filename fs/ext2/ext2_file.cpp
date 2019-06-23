@@ -79,8 +79,11 @@ _u32 EXT2_File::read(_u8 *buf, _u32 len) {
 }
 
 _u32 EXT2_File::write(_u8 *buf, _u32 len) {
+    if (len + pos > size)
+        resize(len + pos);
+    ext2_inode->print();
     _u32 write_len = 0, this_write_len;
-   _u32 block_size = ext2_fs->block_size;  // 块大小
+    _u32 block_size = ext2_fs->block_size;  // 块大小
     _u32 byte_in_block = pos % block_size;  // 第一个字节在块中的位置
     _u32 nth_block = pos / block_size;  // 第一个字节在第n个块，pos以0开始计数，不需要加1
     auto it = ext2_inode->iter_at(nth_block);
@@ -134,7 +137,9 @@ void EXT2_File::resize(_u32 new_size) {
         }
     }
     size = new_size;
+    ext2_inode->size = size;
     ext2_inode->blocks = target_block;
+    ext2_inode->write_inode();
     ext2_fs->write_gdt();
     ext2_fs->write_super();
 }

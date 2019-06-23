@@ -25,16 +25,19 @@ namespace EXT2
         void inflate();
         void load_children();
 
-        void mkdir(const std::string& name);
-        void create(const std::string& name);
+        VFS::DEntry* mkdir(const std::string& name);
+        VFS::DEntry* create(const std::string& name);
         void unlink(VFS::DEntry *d);  // 删除子项目
         void unlink();  // 删除自己
         void unlink_children();
         // 在tar中创建自己的硬链接
-        void link(DEntry *tar, const std::string& s="");
+        VFS::DEntry *link(DEntry *tar, const std::string& s="");
         // 将本目录中的item移动到另一个目录中
-        void move(DEntry *dir, const std::string& new_name="");
+        VFS::DEntry *move(DEntry *dir, const std::string& new_name="");
         bool empty();
+
+        VFS::DEntry* copy(DEntry *dir, const std::string& new_name);
+
 
 
         ~EXT2_DEntry();

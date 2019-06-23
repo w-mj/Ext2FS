@@ -125,7 +125,7 @@ _u32 EXT2_FS::alloc_inode(EXT2_GD **ret_gd) {
     for (EXT2_GD* gdd: gdt_list) {
         _u32 t = gdd->alloc_inode();
         if (t != 0) {
-            // _si(t);
+            _si(t);
             sb->free_inodes_count--;
             if (ret_gd != nullptr)
                 *ret_gd = gdd;
