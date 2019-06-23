@@ -176,13 +176,13 @@ void EXT2_FS::write_super() {
         dev->write(buf, block_to_pos(super_pos), sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }
+    _d_end();
 }
 
 void EXT2_FS::write_gdt() {
     _u32 super_pos = 2; // 第一个组描述符表位置
     MM::Buf buf(gdt_list.size() * sizeof(GroupDescriptor));
     _u32 s_pos = 0;
-    _pos();
 
     for (EXT2_GD *x: gdt_list) {
         memcpy(buf.data + s_pos, x->get_gd(), sizeof(GroupDescriptor));
@@ -190,11 +190,11 @@ void EXT2_FS::write_gdt() {
         x->write_inode_bitmap();
         x->write_block_bitmap();
     }
-    _pos();
     for (EXT2_GD *x: gdt_list) {
         dev->write(buf, block_to_pos(super_pos), sizeof(GroupDescriptor));
         super_pos += sb->blocks_per_group;
     }
+    _d_end();
 }
 
 EXT2_GD *EXT2_FS::get_inode_group(_u32 inode_n) {

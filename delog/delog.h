@@ -49,9 +49,11 @@ enum {
 #if DELOG_MODE < 2
 #define _debug_info(expstr, m, ...) _pos_delog(_DBG_INFO_DELOG, m, expstr, __VA_ARGS__)
 #define _dbg_log(...) _pos_delog(_DBG_INFO_DELOG, "t", "log", __VA_ARGS__)
+#define _d_end() _dbg_log("finished.")
 #else
 #define _debug_info(expstr, m, ...) do{}while(0)
 #define _dbg_log(...) do{}while(0)
+#define _d_end() do{}while(0)
 #endif
 #define _log_info(...) _Npos_delog(_LOG_INFO_DELOG, __VA_ARGS__)
 #define _reg() _log_info("[%s] run!", __func__)

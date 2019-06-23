@@ -15,6 +15,7 @@ EXT2_DEntry::EXT2_DEntry(EXT2_FS* fs1, VFS::DEntry* parent1,
     if (parent == nullptr)
         parent = this;
     inode = nullptr;
+    ext2_inode = nullptr;
     inode_n = inode_n1;
     type=type1;
     name = std::string(name1);
@@ -93,6 +94,7 @@ void EXT2_DEntry::inflate() {
     ext2_inode = new EXT2_Inode(ext2_fs, inode_n, disk_inode);
     ext2_inode->print();
     inode = ext2_inode;
+    // type = VFS::mode_to_type(inode->mode);
     sync = 0;
 }
 
@@ -124,6 +126,7 @@ void EXT2_DEntry::write_children() {
         parent_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
         // new_disk_entry->name = de->name.c_str();
     }
+    _d_end();
 }
 
 VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
@@ -191,7 +194,7 @@ VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
     return new_entry;
 }
 
-VFS::DEntry *EXT2_DEntry::create(const std::string& name) {
+EXT2_DEntry *EXT2_DEntry::create(const std::string& name) {
     if (type != VFS::Directory)
         _error(type);
     _pos();
@@ -214,6 +217,7 @@ VFS::DEntry *EXT2_DEntry::create(const std::string& name) {
     new_i->write_inode();  // 新Inode写入磁盘
     EXT2_DEntry *new_entry = new EXT2_DEntry(ext2_fs, this, new_i_n, VFS::RegularFile, name);
     new_entry->ext2_inode = new_i;
+    new_entry->inode = new_i;
     load_children();
     children.push_back(new_entry);
     write_children();
@@ -334,6 +338,28 @@ VFS::DEntry* EXT2_DEntry::copy(DEntry *dir, const std::string& new_name) {
     // dynamic_cast<EXT2_DEntry*>(new_entry)->ext2_inode->write_inode();
     delete old_f;
     delete new_f;
+    return new_entry;
+}
+
+VFS::DEntry *EXT2_DEntry::symlink(DEntry *file, const std::string& new_name) {
+    EXT2_DEntry *new_entry = create(new_name==""?file->name:new_name);
+    _pos();
+    new_entry->inode->mode = S_IFLNK | S_IRWXG | S_IRWXO | S_IRWXU;
+    new_entry->type = VFS::SymbolLink;
+    _pos();
+    std::string path = file->printed_path();
+    if (path.size() <= 60) {
+        memmove(new_entry->ext2_inode->i->block, path.c_str(), path.size());
+    } else {
+        VFS::File *file = new_entry->open();
+        file->write((_u8*)path.c_str(), path.size());
+        file->close();
+    }
+    new_entry->ext2_inode->i->size = path.size();
+    new_entry->inode->size = path.size();
+    new_entry->ext2_inode->write_inode();
+    write_children();
+    _d_end();
     return new_entry;
 }
 

@@ -85,11 +85,15 @@ namespace VFS
         File *open();
         // 把自己复制到另一个文件夹中，新文件夹中文件的Entry
         virtual VFS::DEntry *copy(DEntry *dir, const std::string& new_name="")=0;
+        // 在当前文件夹下创建另一个文件file的符号链接
+        virtual VFS::DEntry *symlink(DEntry *file, const std::string& new_name="")=0;
 
         File *open(const std::string& name);
         DEntry* get_child(const std::string& name);
         DEntry* get_child(const NameI *namei, DEntry **path=nullptr);
         DEntry *get_path(const NameI *namei, std::string* fname=nullptr);
+
+        std::string printed_path();
     };
 
     enum {
@@ -156,6 +160,9 @@ namespace VFS
         virtual _u32 seek(int pos, int whence)=0;
         virtual _u32 read(_u8*, _u32 size)=0;
         virtual _u32 write(_u8*, _u32 size)=0;
+        void close();
     };
+
+    _u8 mode_to_type(_u8 mode);
     
 }; // namespace VFS
