@@ -38,21 +38,8 @@ namespace VFS
     public:
         std::string name;
         NameI *next=nullptr, *prev=nullptr;
-        NameI(const std::string name, NameI *p=nullptr): name(name) {
-            if (p != nullptr) {
-                p->next = this;
-            }
-            prev = p;
-            next = nullptr;
-        }
-        ~NameI() {
-            if (next != nullptr)
-                next->prev = nullptr;
-            if (prev != nullptr)
-                prev->next = nullptr;
-            delete next;
-            delete prev;
-        }
+        NameI(const std::string name, NameI *p=nullptr);
+        ~NameI();
     };
 
     /**
@@ -83,7 +70,7 @@ namespace VFS
         virtual void unlink_children()=0;
         virtual bool empty()=0;  // 判断一个目录是否为空
         // 在本目录项中创建另一个目录项的硬链接
-        virtual void link(DEntry *, const std::string s="")=0;
+        virtual void link(DEntry *, const std::string& s="")=0;
 
         File *open(const std::string& name);
         File *open();

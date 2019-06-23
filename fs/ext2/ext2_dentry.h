@@ -30,7 +30,7 @@ namespace EXT2
         void unlink(VFS::DEntry *d);  // 删除子项目
         void unlink();  // 删除自己
         void unlink_children();
-        void link(DEntry *tar, const std::string s="");
+        void link(DEntry *tar, const std::string& s="");
         bool empty();
 
 

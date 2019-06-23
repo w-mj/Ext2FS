@@ -37,6 +37,9 @@ namespace EXT2 {
         void write_super();
         void write_gdt();
 
+        EXT2_GD *get_inode_group(_u32 inode_n);
+        EXT2_GD *get_block_group(_u32 inode_n);
+
         EXT2_FS(Dev::BlockDevice* dev);
         void mount();
         ~EXT2_FS();

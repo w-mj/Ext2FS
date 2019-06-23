@@ -67,7 +67,7 @@ error:
 
 struct OP {
     const char *name;
-    VFS::DEntry* (*op)(VFS::DEntry *, VFS::NameI *, const std::vector<std::string>&);
+    VFS::DEntry* (*op)(VFS::DEntry *, const std::vector<std::string>&);
 };
 
 static void ls_one(VFS::DEntry *x, bool l) {
@@ -92,8 +92,9 @@ static void ls_one(VFS::DEntry *x, bool l) {
     }
 }
 
-VFS::DEntry *ls(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace std;
+    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     auto t = cwd->get_child(target);
     if (t == nullptr) {
         cout << "No such file or directory. " << cmdd[cmdd.size() - 1] << endl;
@@ -108,12 +109,13 @@ VFS::DEntry *ls(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::str
         ls_one(t, cmdd.size() == 2 && cmdd[1] == "-l");
     }
     cout << endl;
-
+    delete target;
     return cwd;
 }
 
-VFS::DEntry *cd(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+VFS::DEntry *cd(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     using namespace std;
+    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     auto ans = cwd->get_child(target);
     if (ans == nullptr) {
         cout << "No such directory " << cmdd[1] << endl;
@@ -122,33 +124,40 @@ VFS::DEntry *cd(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::str
         cout << cmdd[1] << " is not a directory." << endl;
         ans = cwd;
     }
+    delete target;
     return ans;
 }
 
-VFS::DEntry *mkdir(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+VFS::DEntry *mkdir(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     std::string name;
+    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     VFS::DEntry *d = cwd->get_path(target, &name);
 
     if (d == nullptr) {
         std::cout << "No such directory " << name << std::endl;
     }else 
     d->mkdir(name);
+    delete target;
     return cwd;
 }
 
-VFS::DEntry *touch(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+VFS::DEntry *touch(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     std::string name;
+    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     VFS::DEntry *d = cwd->get_path(target, &name);
 
     if (d == nullptr) {
         std::cout << "No such directory " << name << std::endl;
     }else 
     d->create(name);
+    delete target;
     return cwd;
 }
 
-VFS::DEntry *cat(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+VFS::DEntry *cat(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
+    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);    
     auto ans = cwd->get_child(target);
+    
     VFS::File *fe = ans->open();
     if (fe == nullptr)
         std::cout << "No such file " << cmdd[1] << std::endl;
@@ -165,30 +174,13 @@ VFS::DEntry *cat(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::st
         delete[] buf;
         delete fe;
     }
+    delete target;
     return cwd;
 }
 
-
-// void rm_r(VFS::DEntry *cwd) {
-//     _dbg_log("rm_r %d", cwd->inode_n);
-//     cwd->load_children();
-//     for (auto x: cwd->children) {
-//         _dbg_log("%s %d, parent %d", x->name.c_str(), x->inode_n, cwd->parent->inode_n);
-//         if (x->inode_n == cwd->inode_n || x->inode_n == cwd->parent->inode_n)
-//             continue;  // 跳过. 和..
-//         if (x->type == VFS::Directory) {
-//             x->unlink_children();
-//         } 
-//         _pos();
-//         _dbg_log("start unlink %d", x->inode_n);
-//         cwd->unlink(x);  // 删除空目录和文件
-//         _dbg_log("unlink %d finish", x->inode_n);
-//     }
-//     _dbg_log("rm_r finish");
-// }
-
-VFS::DEntry *rm(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::string>& cmdd) {
+VFS::DEntry *rm(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     VFS::DEntry *d;
+    VFS::NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     VFS::DEntry *to_del = cwd->get_child(target, &d);
     if (to_del == nullptr) {
         std::cout << "No such file " << cmdd[cmdd.size() - 1] << std::endl;
@@ -201,11 +193,14 @@ VFS::DEntry *rm(VFS::DEntry *cwd, VFS::NameI *target, const std::vector<std::str
             d->unlink(to_del);
         }
     }
+    delete target;
     return cwd;
 }
 
-VFS::DEntry *link(VFS::DEntry *cwd, VFS::NameI *from, const std::vector<std::string>& cmdd) {
+VFS::DEntry *link(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace VFS;
+    VFS::NameI *from = parse_path(cmdd[cmdd.size() - 2]);
+
     DEntry *fe = cwd->get_child(from);
     if (fe == nullptr) {
         _log_info("%s is not exists.", cmdd[1].c_str());
@@ -213,12 +208,12 @@ VFS::DEntry *link(VFS::DEntry *cwd, VFS::NameI *from, const std::vector<std::str
     }
     DEntry *te;
     std::string s;
-    NameI *target = parse_path(cmdd[2]);
+    NameI *target = parse_path(cmdd[cmdd.size() - 1]);
     if ((te = cwd->get_path(target, &s)) == nullptr) {
         _log_info("%s is already exists.", cmdd[2].c_str());
         return cwd;
     }
-    te->link(fe);
+    te->link(fe, s);
     return cwd;
 }
 
@@ -279,14 +274,15 @@ int main(void) {
                 if (cmdd.size() > 1) {
                     path = parse_path(cmdd[cmdd.size() - 1]);
                 } else {
+                    cmdd.push_back(".");
                     path = parse_path(".");
                 }
                 if (path == nullptr) {
                     cout << "Wrong path " << cmdd[cmdd.size() - 1] << endl;
                 } else {
-                    cwd = ops[i].op(cwd, path, cmdd);
-                    delete path;
+                    cwd = ops[i].op(cwd, cmdd);
                 }
+                delete path;
             }
         }
         

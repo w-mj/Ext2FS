@@ -64,3 +64,19 @@ File *DEntry::open() {
 }
 
 
+NameI::NameI(const std::string name, NameI *p): name(name) {
+    if (p != nullptr) {
+        p->next = this;
+    }
+    prev = p;
+    next = nullptr;
+}
+
+NameI::~NameI() {
+    if (next != nullptr)
+        next->prev = nullptr;
+    if (prev != nullptr)
+        prev->next = nullptr;
+    delete next;
+    delete prev;
+}

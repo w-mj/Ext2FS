@@ -197,6 +197,14 @@ void EXT2_FS::write_gdt() {
     }
 }
 
+EXT2_GD *EXT2_FS::get_inode_group(_u32 inode_n) {
+    return gdt_list[inode_n / sb->inodes_per_group];
+}
+
+EXT2_GD *EXT2_FS::get_block_group(_u32 block_n) {
+    return gdt_list[block_n / sb->blocks_per_group];
+}
+
 
 EXT2_FS::~EXT2_FS() {
     for (auto x: gdt_list) {
