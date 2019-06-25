@@ -119,7 +119,7 @@ VFS::NameI *VFS::NameI::from_str(const std::string& path) {
         ans = prev = new NameI("/");
     else
         ans = prev = new NameI(".");
-    printf("%x %x\n", ans->prev, ans->next);
+    // printf("%x %x\n", ans->prev, ans->next);
     std::vector<std::string> sp = split(path, '/');
     for (const auto& x: sp) {
         // printf("++++++++++++++++++++++++++++++++++++\n");

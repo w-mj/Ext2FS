@@ -8,26 +8,26 @@ using namespace EXT2;
 
 void EXT2_Inode::print() {
     using namespace std;
-    cout << "\nInode:  " << inode_n << endl;
-    cout << "文件类型和访问权限 " << i->mode << mode_to_str(i->mode) << endl;
-    cout << "拥有者 " << i->uid << endl;
-    cout << "文件长度 " << i->size << endl;
-    cout << "最后一次访问时间 " << i->atime << endl;
-    cout << "索引节点最后改变的时间 " << i->ctime << endl;
-    cout << "文件内容最后改变的时间 " << i->mtime << endl;
-    cout << "文件删除的时间 " << i->dtime << endl;
-    cout << "组id " << i->gid << endl;
-    cout << "硬链接计数器 " << i->links_count << endl;
-    cout << "文件的数据块数 " << blocks << endl;
-    cout << "文件标志 " << i->flags << endl;
-    cout << "文件版本 " << i->generation << endl;
-    cout << "文件访问控制列表 " << i->file_acl << endl;
-    cout << "目录访问控制列表 " << i->dir_acl << endl;
-    cout << "片地址 " << i->faddr << endl;
-    cout << "数据块指针 ";
-    for (int j = 0; j < blocks;j++)
-        cout << i->block[j] << " ";
-    cout << endl;
+    cerr << "\nInode:  " << inode_n << endl;
+    cerr << "文件类型和访问权限 " << i->mode << mode_to_str(i->mode) << endl;
+    cerr << "拥有者 " << i->uid << endl;
+    cerr << "文件长度 " << i->size << endl;
+    cerr << "最后一次访问时间 " << i->atime << endl;
+    cerr << "索引节点最后改变的时间 " << i->ctime << endl;
+    cerr << "文件内容最后改变的时间 " << i->mtime << endl;
+    cerr << "文件删除的时间 " << i->dtime << endl;
+    cerr << "组id " << i->gid << endl;
+    cerr << "硬链接计数器 " << i->links_count << endl;
+    cerr << "文件的数据块数 " << blocks << endl;
+    cerr << "文件标志 " << i->flags << endl;
+    cerr << "文件版本 " << i->generation << endl;
+    cerr << "文件访问控制列表 " << i->file_acl << endl;
+    cerr << "目录访问控制列表 " << i->dir_acl << endl;
+    cerr << "片地址 " << i->faddr << endl;
+    cerr << "数据块指针 ";
+    for (int j = 0; j < blocks; j++)
+        cerr << i->block[j] << " ";
+    cerr << endl;
 }
 
 EXT2_Inode::EXT2_Inode(EXT2_FS *fs, _u32 n, EXT2::Inode *i): VFS::Inode(fs) {

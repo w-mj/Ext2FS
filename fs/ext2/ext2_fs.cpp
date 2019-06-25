@@ -17,33 +17,33 @@ EXT2_FS::EXT2_FS(Dev::BlockDevice* dev): FS(dev) {
 
 void EXT2_FS::printFS() {
     using namespace std;
-    cout << endl;
-    cout << "文件系统中Inode数量 " << sb->inodes_count << endl;
-    cout << "以块为单位的文件系统大小 " << sb->blocks_count << endl;
-    cout << "文件系统中保留块数目 " << sb->r_blocks_count << endl;
-    cout << "文件系统中空闲块数目 " << sb->free_blocks_count << endl;
-    cout << "文件系统中空闲Inode数量 " << sb->free_inodes_count << endl;
-    cout << "第一个使用的块号 " << sb->first_data_block << endl;
-    cout << "块大小 " << block_size << endl;
-    cout << "逻辑片大小 " << sb->log_frag_size << endl;
-    cout << "每组块数 " << sb->blocks_per_group << endl;
-    cout << "每组碎片数 " << sb->frags_per_group << endl;
-    cout << "每组Inode数 " << sb->inodes_per_group << endl;
-    cout << "上次挂载时间 " << sb->mtime << endl;
-    cout << "上次写入超级块的时间 " << sb->wtime << endl;
-    cout << "未进行检查的挂载次数 " << sb->mnt_count << endl;
-    cout << "必须执行检查前的最大挂载次数 " << sb->max_mnt_count << endl;
-    cout << "Magic " << sb->magic << endl;
-    cout << "文件系统的状态 " << sb->state << endl;
+    cerr << endl;
+    cerr << "文件系统中Inode数量 " << sb->inodes_count << endl;
+    cerr << "以块为单位的文件系统大小 " << sb->blocks_count << endl;
+    cerr << "文件系统中保留块数目 " << sb->r_blocks_count << endl;
+    cerr << "文件系统中空闲块数目 " << sb->free_blocks_count << endl;
+    cerr << "文件系统中空闲Inode数量 " << sb->free_inodes_count << endl;
+    cerr << "第一个使用的块号 " << sb->first_data_block << endl;
+    cerr << "块大小 " << block_size << endl;
+    cerr << "逻辑片大小 " << sb->log_frag_size << endl;
+    cerr << "每组块数 " << sb->blocks_per_group << endl;
+    cerr << "每组碎片数 " << sb->frags_per_group << endl;
+    cerr << "每组Inode数 " << sb->inodes_per_group << endl;
+    cerr << "上次挂载时间 " << sb->mtime << endl;
+    cerr << "上次写入超级块的时间 " << sb->wtime << endl;
+    cerr << "未进行检查的挂载次数 " << sb->mnt_count << endl;
+    cerr << "必须执行检查前的最大挂载次数 " << sb->max_mnt_count << endl;
+    cerr << "Magic " << sb->magic << endl;
+    cerr << "文件系统的状态 " << sb->state << endl;
 
-    cout << "组描述符表：" << endl;
+    cerr << "组描述符表：" << endl;
     for (EXT2_GD* gdt: gdt_list) {
-        cout << "块位图块号 " << gdt->get_gd()->block_bitmap << endl;
-        cout << "索引节点位图的块号 " << gdt->get_gd()->inode_bitmap << endl;
-        cout << "第一个索引节点表块的块号 " << gdt->get_gd()->inode_table << endl;
-        cout << "组中空闲块的个数 " << gdt->get_gd()->free_blocks_count << endl;
-        cout << "组中空闲索引节点的个数 " << gdt->get_gd()->free_inodes_count << endl;
-        cout << "组中目录的个数 " << gdt->get_gd()->used_dirs_count << endl;
+        cerr << "块位图块号 " << gdt->get_gd()->block_bitmap << endl;
+        cerr << "索引节点位图的块号 " << gdt->get_gd()->inode_bitmap << endl;
+        cerr << "第一个索引节点表块的块号 " << gdt->get_gd()->inode_table << endl;
+        cerr << "组中空闲块的个数 " << gdt->get_gd()->free_blocks_count << endl;
+        cerr << "组中空闲索引节点的个数 " << gdt->get_gd()->free_inodes_count << endl;
+        cerr << "组中目录的个数 " << gdt->get_gd()->used_dirs_count << endl;
     }
 }
 

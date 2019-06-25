@@ -245,7 +245,7 @@ OP ops[] = {
     {"unknown", nullptr}
 };
 
-
+#include <unistd.h>
 int main(void) {
     using namespace std;
 

@@ -171,7 +171,7 @@ static void out_info(_I mode) {
         }
 #endif
 #if DELOG_MODE == 0
-        printf("%s\n", ms_buf);
+        fprintf(stderr, "%s\n", ms_buf);
 #endif
         goto _out_info_END;
     }
@@ -180,7 +180,7 @@ static void out_info(_I mode) {
             fprintf(flog, "%s\n", ms_buf);
         }
 #if DELOG_MODE == 0
-        printf("%s\n", ms_buf);
+        fprintf(stderr, "%s\n", ms_buf);
 #endif
         goto _out_info_END;
     }
