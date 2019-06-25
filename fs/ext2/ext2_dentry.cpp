@@ -302,6 +302,10 @@ VFS::DEntry *EXT2_DEntry::link(DEntry *tar, const std::string& s) {
         _log_info("[EXT2]: Hard Link must in the same file system.");
         return nullptr;
     }
+    if (type == VFS::Directory) {
+        _log_info("%s: hard link not allowed for directory", name.c_str());
+        return nullptr;
+    }
     EXT2_DEntry *t = dynamic_cast<EXT2_DEntry*>(tar);
     std::string ts;
     if (s == "")
@@ -313,7 +317,14 @@ VFS::DEntry *EXT2_DEntry::link(DEntry *tar, const std::string& s) {
     t->children.push_back(new_e);
     t->write_children();
     inflate();
-    ext2_inode->nlink++;
+    if (type == VFS::Directory) {
+        // 目录的硬链接比普通文件多一个
+        ext2_inode->nlink += 2;
+        // 目录的硬链接，组中目录数目加一
+        ext2_fs->gdt_list[inode_n / ext2_fs->sb->inodes_per_group]->get_gd()->used_dirs_count++;
+        ext2_fs->write_gdt();
+    } else
+        ext2_inode->nlink += 1;
     ext2_inode->write_inode();
     return new_e;
 }
