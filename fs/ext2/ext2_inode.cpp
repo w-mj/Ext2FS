@@ -131,6 +131,12 @@ EXT2_Inode::iterator EXT2_Inode::end() {
     return iterator::getInstance(this, blocks);
 }
 
+EXT2_Inode::iterator EXT2_Inode::alloc_iter() {
+    auto a = iterator::getInstance(this, blocks);
+    a.auto_alloc = true;
+    return a;
+}
+
 EXT2_Inode::iterator EXT2_Inode::iter_at(_u32 i) {
     return iterator::getInstance(this, i);
 }
@@ -209,6 +215,10 @@ void EXT2_Inode::iterator::load_buf(int t) {
         if (block_buf[t + 1] == nullptr)
             block_buf[t + 1] = new _u32[sub_blocks_in_block[level]];
         _si(new_block_pos);
+        if (new_block_pos == 0 && !auto_alloc) {
+            _dbg_log("Reach iter end but not set auto alloc.");
+            return;
+        }
         if (new_block_pos == 0) {
             _dbg_log("auto alloc data block");
             // 如果没有下一个数据块，则分配一个
@@ -321,7 +331,7 @@ int EXT2_Inode::iterator::operator*() {
     if (block_buf[level] == nullptr)
         load_buf(0);
     int ans = block_buf[level][indexs[level]];
-    if (ans == 0) {
+    if (ans == 0 && auto_alloc) {
         _dbg_log("auto alloc data block");
         ans = inode->ext2_fs->alloc_block();
         block_buf[level][indexs[level]] = ans;

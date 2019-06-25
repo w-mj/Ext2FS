@@ -40,6 +40,8 @@ namespace EXT2
             void load_buf(int from=0);
 
             void write_back(); // 写回磁盘
+
+            bool auto_alloc = false; // 自动分配空间
             iterator(EXT2_Inode* i);
 
         public:
@@ -77,6 +79,7 @@ namespace EXT2
 
         iterator begin();
         iterator end();
+        iterator alloc_iter();
         iterator iter_at(_u32 i);
 
         ~EXT2_Inode();

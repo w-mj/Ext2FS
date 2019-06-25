@@ -119,7 +119,7 @@ void EXT2_File::resize(_u32 new_size) {
     if (target_block == current_block) {
         return;
     }
-    auto it = ext2_inode->end(); 
+    auto it = ext2_inode->alloc_iter(); 
     if (target_block > current_block) {
         // 分配空间
         while (target_block != current_block) {
