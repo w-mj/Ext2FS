@@ -36,7 +36,7 @@ void EXT2_FS::printFS() {
     cerr << "Magic " << sb->magic << endl;
     cerr << "文件系统的状态 " << sb->state << endl;
 
-    cerr << "组描述符表：" << endl;
+    cerr << endl << "组描述符表：" << endl;
     for (EXT2_GD* gdt: gdt_list) {
         cerr << "块位图块号 " << gdt->get_gd()->block_bitmap << endl;
         cerr << "索引节点位图的块号 " << gdt->get_gd()->inode_bitmap << endl;
@@ -44,6 +44,7 @@ void EXT2_FS::printFS() {
         cerr << "组中空闲块的个数 " << gdt->get_gd()->free_blocks_count << endl;
         cerr << "组中空闲索引节点的个数 " << gdt->get_gd()->free_inodes_count << endl;
         cerr << "组中目录的个数 " << gdt->get_gd()->used_dirs_count << endl;
+        cerr << endl;
     }
 }
 
@@ -87,7 +88,7 @@ void EXT2_FS::mount() {
     block_size = 1024 * (1 << sb->log_block_size);
     // dev->seek(block_size + 1024);  // 指向GDT
     _u32 read_pos = block_size + 1024;
-    group_cnt = 8 * sb->blocks_count / sb->blocks_per_group;
+    group_cnt = sb->inodes_count / sb->inodes_per_group;
     for (int i = 0; i < group_cnt; i++) {
         GroupDescriptor* gtp = new GroupDescriptor();
         dev->read(sb_buf, read_pos, sizeof(GroupDescriptor));

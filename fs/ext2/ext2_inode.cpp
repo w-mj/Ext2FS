@@ -4,6 +4,7 @@
 #include "mm/buf.h"
 #include <iostream>
 #include <cstring>
+#include <algorithm>
 using namespace EXT2;
 
 void EXT2_Inode::print() {
@@ -25,7 +26,7 @@ void EXT2_Inode::print() {
     cerr << "目录访问控制列表 " << i->dir_acl << endl;
     cerr << "片地址 " << i->faddr << endl;
     cerr << "数据块指针 ";
-    for (int j = 0; j < blocks; j++)
+    for (int j = 0; j < min(blocks, (_u32)15); j++)
         cerr << i->block[j] << " ";
     cerr << endl;
 }
