@@ -145,9 +145,8 @@ namespace VFS
         FS* fs;
     public:
         Inode(FS* fs1):fs(fs1), dev(fs1->dev) {}
-        
-        void create(DEntry*, int mode);  // 为与目录项相关联的普通文件创建一个索引节点
-
+        // 将Inode标记为脏，找时机写回设备        
+        virtual void dirty()=0;
     };
 
 

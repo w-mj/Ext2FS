@@ -102,6 +102,12 @@ void EXT2_Inode::write_inode() {
     i->blocks = blocks * (ext2_fs->block_size / 512);
     i->size = size;
     i->mode = mode;
+    i->links_count=nlink;
+    i->uid = uid;
+    i->gid = gid;
+    i->atime = atime;
+    i->mtime = mtime;
+    i->ctime = ctime;
     memcpy(buf.data, i, sizeof(EXT2::Inode));
     // _sa(buf.data, sizeof(EXT2::Inode));
     ext2_fs->dev->write(buf, inode_pos, sizeof(EXT2::Inode));
@@ -112,6 +118,9 @@ void EXT2_Inode::write_inode() {
     _dbg_log("finish.");
 }
 
+void EXT2_Inode::dirty() {
+    write_inode();
+}
 
 EXT2_Inode::iterator EXT2_Inode::begin() {
     return iterator::getInstance(this, 0);

@@ -73,6 +73,7 @@ namespace EXT2
         _u32 nth_block(_u32 n);
 
         void write_inode();
+        void dirty();
 
         iterator begin();
         iterator end();

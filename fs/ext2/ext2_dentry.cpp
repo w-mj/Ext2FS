@@ -50,7 +50,7 @@ void EXT2_DEntry::load_children() {
         // _sa(buf.data, ext2_fs->block_size);
         _u32 s_pos = 0;
         _u32 next_length = 12;
-        while (all_length < ext2_inode->i->size) {
+        while (all_length < ext2_inode->size) {
             // _sa(buf.data + s_pos, 20);
             memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
             if (temp_str->rec_len == 0)
@@ -168,7 +168,7 @@ VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
     // EXT2_File parent_body11(this, this->ext2_inode);
 
     // 修改父目录的Inode
-    ext2_inode->i->links_count++; // 硬链接计数器加1
+    ext2_inode->nlink++; // 硬链接计数器加1
     ext2_inode->write_inode();
 
     DirEntry new_disk_entry[1];    
@@ -237,7 +237,7 @@ void EXT2_DEntry::unlink(VFS::DEntry *d) {
     _error(type != VFS::Directory);
     load_children();
     if (d->type == VFS::Directory) {
-        ext2_inode->i->links_count--;  // 降低自己的引用链接
+        ext2_inode->nlink--;  // 降低自己的引用链接
         ext2_inode->write_inode();
         ext2_fs->gdt_list[d->inode_n / ext2_fs->sb->inodes_per_group]->get_gd()->used_dirs_count--;
         ext2_fs->write_gdt();
@@ -252,26 +252,26 @@ void EXT2_DEntry::unlink(VFS::DEntry *d) {
 
 void EXT2_DEntry::unlink() {
     inflate();
-    _dbg_log("ulink %d ref cnt: %d type: %d.", inode_n, ext2_inode->i->links_count, type);
-    if (ext2_inode->i->links_count == 0)
+    _dbg_log("ulink %d ref cnt: %d type: %d.", inode_n, ext2_inode->nlink, type);
+    if (ext2_inode->nlink == 0)
         return;
 
-    ext2_inode->i->links_count--;
+    ext2_inode->nlink--;
     // 硬引用计数减一，当引用计数为0时彻底删除文件，目录可以等于1
-    if (ext2_inode->i->links_count == 0 || (type==VFS::Directory && ext2_inode->i->links_count == 1)) {
+    if (ext2_inode->nlink == 0 || (type==VFS::Directory && ext2_inode->nlink == 1)) {
         _pos();
         ext2_inode->i->dtime = time(0);
         EXT2_File f(this);
         f.resize(0);
         // if (type==VFS::Directory)
         //     ext2_inode->i->size = 1024;
-        ext2_inode->i->links_count = 0;
+        ext2_inode->nlink = 0;
         ext2_fs->release_inode(inode_n);
         ext2_fs->write_gdt();
         ext2_fs->write_super();
     }
     ext2_inode->write_inode();
-    _dbg_log("ulink %d ref cnt: %d type: %d. finish", inode_n, ext2_inode->i->links_count, type);
+    _dbg_log("ulink %d ref cnt: %d type: %d. finish", inode_n, ext2_inode->nlink, type);
 }
 
 void EXT2_DEntry::unlink_children() {
@@ -283,7 +283,7 @@ void EXT2_DEntry::unlink_children() {
         if (d->inode_n == inode_n || d->inode_n == parent->inode_n)
             continue;
         if (d->type == VFS::Directory) {
-            ext2_inode->i->links_count--;  // 降低自己的引用链接
+            ext2_inode->nlink--;  // 降低自己的引用链接
             ext2_fs->gdt_list[d->inode_n / ext2_fs->sb->inodes_per_group]->get_gd()->used_dirs_count--;
             d->unlink_children();
         }
@@ -313,7 +313,7 @@ VFS::DEntry *EXT2_DEntry::link(DEntry *tar, const std::string& s) {
     t->children.push_back(new_e);
     t->write_children();
     inflate();
-    ext2_inode->i->links_count++;
+    ext2_inode->nlink++;
     ext2_inode->write_inode();
     return new_e;
 }
@@ -356,7 +356,7 @@ VFS::DEntry *EXT2_DEntry::symlink(DEntry *file, const std::string& new_name) {
         file->write((_u8*)path.c_str(), path.size());
         file->close();
     }
-    new_entry->ext2_inode->i->size = path.size();
+    new_entry->ext2_inode->size = path.size();
     new_entry->inode->size = path.size();
     new_entry->ext2_inode->write_inode();
     write_children();

@@ -49,6 +49,7 @@ void MockDisk::open(const std::string& path) {
     if (f == nullptr) {
         // std::cout << "文件打开错误"<< std::endl;
         perror("文件打开错误");
+        exit(1);
     }
 
     fseek(f, 0, SEEK_END);

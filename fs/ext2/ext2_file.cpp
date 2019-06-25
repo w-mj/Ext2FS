@@ -10,7 +10,7 @@ EXT2_File::EXT2_File(EXT2_DEntry *d, EXT2_Inode *i) {
     ext2_fs = i->ext2_fs;
     type = d->type;
     pos = 0;
-    size = i->i->size;
+    size = i->size;
     _dbg_log("打开文件");
     _si(size);
 }
@@ -23,7 +23,7 @@ EXT2_File::EXT2_File(EXT2_DEntry *d) {
     ext2_fs = d->ext2_inode->ext2_fs;
     type = d->type;
     pos = 0;
-    size = d->ext2_inode->i->size;
+    size = d->ext2_inode->size;
     _dbg_log("打开文件");
     _si(size);
 }
