@@ -208,6 +208,7 @@ void EXT2_Inode::iterator::load_buf(int t) {
         _u32 new_block_pos = block_buf[t][indexs[t]];
         if (block_buf[t + 1] == nullptr)
             block_buf[t + 1] = new _u32[sub_blocks_in_block[level]];
+        _si(new_block_pos);
         if (new_block_pos == 0) {
             _dbg_log("auto alloc data block");
             // 如果没有下一个数据块，则分配一个
@@ -215,12 +216,13 @@ void EXT2_Inode::iterator::load_buf(int t) {
             block_buf[t][indexs[t]] = new_block_pos;
             dirty[t] = true; 
             block_pos[t + 1] = new_block_pos;
-            memset(block_buf[t + 1], 0, sizeof(block_buf[t + 1]));  // 新块数据清零
+            memset(block_buf[t + 1], 0, fs->block_size);  // 新块数据清零
         } else {
             MM::Buf buf(fs->block_size);
             fs->dev->read(buf, fs->block_to_pos(new_block_pos), fs->block_size);
-            memcpy(block_buf[t + 1], buf.data, sizeof(block_buf[t + 1]));
+            memcpy(block_buf[t + 1], buf.data, fs->block_size);
         }
+        _sa(block_buf[t + 1], 1024);
         t++;
     }
 }
@@ -239,7 +241,7 @@ void EXT2_Inode::iterator::write_back() {
             if (buf == nullptr)
                 buf = new MM::Buf(fs->block_size);
             _u32 pos = fs->block_to_pos(block_pos[t]);
-            memmove(buf->data, block_buf[t], sizeof(block_buf[t]));
+            memmove(buf->data, block_buf[t], fs->block_size);
             fs->dev->write(*buf, pos, fs->block_size);
             dirty[t] = false;
         }
@@ -256,6 +258,7 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator++() {
     index_cnt++;
     indexs[level]++;
     _si(indexs[level]);
+    _si(level);
     if (indexs[level] >= sub_blocks_in_block[level]) {
         // 小升级! 
         int t = level;
@@ -298,6 +301,7 @@ EXT2_Inode::iterator& EXT2_Inode::iterator::operator--() {
 
 bool
 EXT2_Inode::iterator::operator==(const iterator& ano) const {
+    // return index_cnt == ano.index_cnt;
     _error(inode != ano.inode);
     if (ano.index_cnt != index_cnt || ano.level != level)
         return false;
