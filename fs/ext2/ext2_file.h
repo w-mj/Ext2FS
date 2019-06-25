@@ -17,10 +17,10 @@ namespace EXT2 {
     public:
         EXT2_File(EXT2_DEntry *);
         EXT2_File(EXT2_DEntry *, EXT2_Inode *);
-        _u32 tell();
-        _u32 seek(int pos, int whence);
-        _u32 read(_u8*, _u32 size);
-        _u32 write(_u8*, _u32 size);
+        int tell();
+        int seek(int pos, int whence);
+        int read(char*, int size);
+        int write(const char*, int size);
         void resize(_u32 new_size);
     };
 }

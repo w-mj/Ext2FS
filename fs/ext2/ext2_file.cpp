@@ -29,11 +29,11 @@ EXT2_File::EXT2_File(EXT2_DEntry *d) {
 }
 
 
-_u32 EXT2_File::tell() {
+int EXT2_File::tell() {
     return pos;
 }
 
-_u32 EXT2_File::seek(int pos, int whence) {
+int EXT2_File::seek(int pos, int whence) {
     switch (whence) {
         case VFS::SEEK::CUR:
             this->pos += pos;
@@ -50,7 +50,7 @@ _u32 EXT2_File::seek(int pos, int whence) {
     return this->pos;
 }
 
-_u32 EXT2_File::read(_u8 *buf, _u32 len) {
+int EXT2_File::read(char *buf, int len) {
     if (pos + len > size)
         return 0;
     _u32 read_len = 0, this_read_len;
@@ -64,8 +64,8 @@ _u32 EXT2_File::read(_u8 *buf, _u32 len) {
 
     MM::Buf buff(block_size);
     ext2_fs->dev->read(buff, pos_in_fs, block_size);  // 从第一个块读入数据，每次都读出一整块
-    memcpy(buf, buff.data + byte_in_block, std::min(len, block_size - byte_in_block));
-    read_len = std::min(len, block_size - byte_in_block);
+    memcpy(buf, buff.data + byte_in_block, std::min((_u32)len, block_size - byte_in_block));
+    read_len = std::min((_u32)len, block_size - byte_in_block);
     while (read_len < len && pos + read_len < size) {
         it++;  // 指向下一个块
         block_n = *it;  // 下一个块号
@@ -78,7 +78,7 @@ _u32 EXT2_File::read(_u8 *buf, _u32 len) {
     return read_len;
 }
 
-_u32 EXT2_File::write(_u8 *buf, _u32 len) {
+int EXT2_File::write(const char *buf, int len) {
     if (len + pos > size)
         resize(len + pos);
     // ext2_inode->print();
@@ -91,7 +91,7 @@ _u32 EXT2_File::write(_u8 *buf, _u32 len) {
     _u32 pos_in_fs = ext2_fs->block_to_pos(block_n);  // 第一个块在文件系统中的位置
     //_si(pos + len);
     MM::Buf buff(block_size);
-    this_write_len = std::min(block_size - byte_in_block, len);
+    this_write_len = std::min(block_size - byte_in_block, (_u32)len);
     memcpy(buff.data, buf, this_write_len);
     ext2_fs->dev->write(buff, pos_in_fs + byte_in_block, this_write_len);  // 向第一个块写数据
     write_len = this_write_len;

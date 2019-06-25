@@ -9,6 +9,7 @@
 #include "delog/delog.h"
 #include "stat.h"
 #include "delog/common.h"
+#include "fs/real_file/real_file.h"
 
 struct OP {
     const char *name;
@@ -121,7 +122,7 @@ VFS::DEntry *cat(VFS::DEntry *cwd,const std::vector<std::string>& cmdd) {
     } else {
         _si(fe->size);
         char *buf = new char[fe->size];
-        fe->read((_u8*)buf, fe->size);
+        fe->read(buf, fe->size);
         fwrite(buf, fe->size, 1, stdout);
         putchar('\n');
         fflush(stdout);
@@ -249,8 +250,9 @@ OP ops[] = {
 int main(void) {
     using namespace std;
 
-    Dev::BlockDevice *dev = new Dev::MockDisk();
-    dev->open("fs/ext2/fs");
+    RealFile::RealFile real_disk("fs/ext2/fs");
+    Dev::BlockDevice *dev = new Dev::MockDisk(real_disk);
+
     EXT2::EXT2_FS *ext2_fs = new EXT2::EXT2_FS(dev);
     VFS::FS *fs = ext2_fs;
     cout << "System up." << endl;

@@ -109,6 +109,7 @@ NameI::~NameI() {
 
 
 void VFS::File::close() {
+    _dbg_log("delete this");
     delete this;  // 恶魔操作
 }
 

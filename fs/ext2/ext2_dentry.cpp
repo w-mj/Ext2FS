@@ -124,7 +124,7 @@ void EXT2_DEntry::write_children() {
         }
         sub_item_cnt++;
         all_length += new_disk_entry->rec_len;
-        parent_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
+        parent_body.write((char *)new_disk_entry, new_disk_entry->rec_len);
         // new_disk_entry->name = de->name.c_str();
     }
     _d_end();
@@ -179,13 +179,13 @@ VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
     new_disk_entry->name_len = 1;
     new_disk_entry->name[0] = '.';
     new_disk_entry->name[1] = '\0';
-    child_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
+    child_body.write((char*)new_disk_entry, new_disk_entry->rec_len);
     new_disk_entry->inode = this->inode_n;
     new_disk_entry->name_len = 2;
     new_disk_entry->rec_len = ext2_fs->block_size - 12;
     new_disk_entry->name[1] = '.';
     new_disk_entry->name[2] = '\0';
-    child_body.write((_u8*)new_disk_entry, new_disk_entry->rec_len);
+    child_body.write((char*)new_disk_entry, new_disk_entry->rec_len);
     // EXT2_File child_bod11y(new_entry, new_i);
 
     // ext2_fs->sb->
@@ -344,7 +344,7 @@ VFS::DEntry* EXT2_DEntry::copy(DEntry *dir, const std::string& new_name) {
     VFS::DEntry *new_entry = dir->create(new_name==""?this->name:new_name);
     VFS::File *old_f = this->open();
     VFS::File *new_f = new_entry->open();
-    _u8 buf[old_f->size];
+    char buf[old_f->size];
     old_f->read(buf, old_f->size);
     new_f->write(buf, old_f->size);
     // dynamic_cast<EXT2_DEntry*>(new_entry)->ext2_inode->write_inode();
@@ -364,7 +364,7 @@ VFS::DEntry *EXT2_DEntry::symlink(DEntry *file, const std::string& new_name) {
         memmove(new_entry->ext2_inode->i->block, path.c_str(), path.size());
     } else {
         VFS::File *file = new_entry->open();
-        file->write((_u8*)path.c_str(), path.size());
+        file->write(path.c_str(), path.size());
         file->close();
     }
     new_entry->ext2_inode->size = path.size();
@@ -383,7 +383,7 @@ VFS::DEntry *EXT2_DEntry::follow() {
         memmove(buf, ext2_inode->i->block, inode->size);
     } else {
         VFS::File *f = open();
-        f->read((_u8*)buf, inode->size);
+        f->read(buf, inode->size);
         f->close();
     }
     _ss(buf);

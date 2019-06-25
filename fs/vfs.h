@@ -155,15 +155,15 @@ namespace VFS
      */
     class File {
     public:
-        _u32 pos;
-        _u32 size;
-        _u8 type;
-        _u8 open_mode;
-        virtual _u32 tell()=0;
-        virtual _u32 seek(int pos, int whence)=0;
-        virtual _u32 read(_u8*, _u32 size)=0;
-        virtual _u32 write(_u8*, _u32 size)=0;
-        void close();
+        int pos;
+        int size;
+        int type;
+        int open_mode;
+        virtual int tell()=0;
+        virtual int seek(int pos, int whence)=0;
+        virtual int read(char*, int size)=0;
+        virtual int write(const char*, int size)=0;
+        virtual void close();
     };
 
     _u8 mode_to_type(_u8 mode);
