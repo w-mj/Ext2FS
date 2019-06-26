@@ -168,7 +168,6 @@ EXT2_Inode::iterator::iterator(EXT2_Inode* i) {
 
 EXT2_Inode::iterator EXT2_Inode::iterator::getInstance(EXT2_Inode *i, _u32 blocks) {
     EXT2_Inode::iterator it(i);
-    _dbg_log("get instance %d", blocks);
     it.index_cnt = blocks;  // 最大值
     if (blocks == 0) {
         it.level = 0;
@@ -196,6 +195,9 @@ EXT2_Inode::iterator EXT2_Inode::iterator::getInstance(EXT2_Inode *i, _u32 block
     } else {
         _error(1);
     }
+    _dbg_log("get instance %d, [%d, %d, %d, %d]", 
+        blocks, it.indexs[0], it.indexs[1], it.indexs[2], it.indexs[3]);
+
     return it;
 }
 

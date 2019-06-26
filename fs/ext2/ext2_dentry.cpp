@@ -42,7 +42,7 @@ void EXT2_DEntry::load_children() {
     children.clear();
     // for (_u32 i = 0; i < ext2_inode->i->blocks; i++) {
     _sp(*ext2_inode);
-    // ext2_inode->print();
+    ext2_inode->print();
     _u32 all_length = 0;
     for (int i: *ext2_inode) {
         _u32 data_block_pos = ext2_fs->block_to_pos(i);

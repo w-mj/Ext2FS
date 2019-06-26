@@ -250,6 +250,10 @@ VFS::DEntry *mount(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     Dev::BlockDevice *d = new Dev::MockDisk(*f);
     FS* new_fs = new EXT2::EXT2_FS(d);
     new_fs->mount();
+    new_fs->root->load_children();
+    // mnt_e->inode = new_fs->root->inode;
+    // mnt_e->children = new_fs->root->children;
+    new_fs->root->name = mnt_e->name;
     mnt_e->parent->children.push_back(new_fs->root);
     mnt_e->parent->children.remove(mnt_e);
     return cwd;
