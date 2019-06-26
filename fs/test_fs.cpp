@@ -232,6 +232,29 @@ VFS::DEntry *symlink(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     return cwd;
 }
 
+VFS::DEntry *mount(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    using namespace VFS;
+    NameI *fs = VFS::NameI::from_str(cmdd[cmdd.size() - 2]);
+    NameI *dir = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
+    DEntry *fs_e = cwd->get_child(fs);
+    DEntry *mnt_e = cwd->get_child(dir);
+    if (fs_e == nullptr) {
+        std::cout << "no such device " << cmdd[cmdd.size() - 2] << std::endl;
+        return cwd;
+    }
+    if (mnt_e == nullptr) {
+        std::cout << "no such diectory " << cmdd[cmdd.size() - 1] << std::endl;
+        return cwd;
+    }
+    File *f = fs_e->open();
+    Dev::BlockDevice *d = new Dev::MockDisk(*f);
+    FS* new_fs = new EXT2::EXT2_FS(d);
+    new_fs->mount();
+    mnt_e->parent->children.push_back(new_fs->root);
+    mnt_e->parent->children.remove(mnt_e);
+    return cwd;
+}
+
 OP ops[] = {
     {"ls", ls},
     {"cd", cd},
@@ -243,6 +266,7 @@ OP ops[] = {
     {"mv", mv},
     {"cp", cp},
     {"ln", symlink},
+    {"mount", mount},
     {"unknown", nullptr}
 };
 
@@ -273,7 +297,7 @@ int main(void) {
         } else if (fs->status == VFS::FS_unmounted) {
             cout << "Please mount fs first." << endl;
         } else if (cmdd[0] == "exit") {
-            break;
+            break; 
         } else if (cmdd[0] == "dump") {
             MM::Buf buf(1024);
             if (cmdd[1] == "i")

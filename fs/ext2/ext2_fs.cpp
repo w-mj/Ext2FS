@@ -58,16 +58,26 @@ int EXT2_FS::block_to_pos(int block) {
 
 int EXT2_FS::inode_to_pos(int inode_n) {
     inode_n--;
-    int max_inodes_in_group = 8 * block_size;
-    auto it = gdt_list.begin();
-    while (it != gdt_list.end() && inode_n > max_inodes_in_group) {
-        inode_n -= max_inodes_in_group;
-        it++;
-    }
-    _error(it == gdt_list.end());
-    _error(inode_n > max_inodes_in_group);
+    _si(inode_n);
+    _si(sb->inodes_per_group);
+    int group_n = inode_n / sb->inodes_per_group;
+    inode_n = inode_n % sb->inodes_per_group;
+    
+    int ans = block_to_pos(gdt_list[group_n]->get_gd()->inode_table) + inode_n * sizeof(Inode);
+    _sx(ans);
+    return ans;
 
-    return block_to_pos((*it)->get_gd()->inode_table) + inode_n * sizeof(Inode);
+    // inode_n--;
+    // int max_inodes_in_group = 8 * block_size;
+    // auto it = gdt_list.begin();
+    // while (it != gdt_list.end() && inode_n > max_inodes_in_group) {
+    //     inode_n -= max_inodes_in_group;
+    //     it++;
+    // }
+    // _error(it == gdt_list.end());
+    // _error(inode_n > max_inodes_in_group);
+
+    // return block_to_pos((*it)->get_gd()->inode_table) + inode_n * sizeof(Inode);
 }
 
 void EXT2_FS::mount() {
