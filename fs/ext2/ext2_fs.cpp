@@ -99,7 +99,7 @@ void EXT2_FS::mount() {
     // dev->seek(block_size + 1024);  // 指向GDT
     _u32 read_pos = block_size + 1024;
     group_cnt = sb->inodes_count / sb->inodes_per_group;
-    for (int i = 0; i < group_cnt; i++) {
+    for (_u32 i = 0; i < group_cnt; i++) {
         GroupDescriptor* gtp = new GroupDescriptor();
         dev->read(sb_buf, read_pos, sizeof(GroupDescriptor));
         memmove(gtp, sb_buf.data, sizeof(GroupDescriptor));
@@ -118,7 +118,7 @@ void EXT2_FS::mount() {
     // dev->read(sb_buf, sizeof(Inode));
     // Inode* root_inode = new Inode();
     // memmove(root_inode, sb_buf.data, sizeof(Inode));
-    _u32 root_inode_pos = gdt_list.front()->get_gd()->inode_table;
+    // _u32 root_inode_pos = gdt_list.front()->get_gd()->inode_table;
     EXT2_DEntry* ext2_entry = new EXT2_DEntry(this, nullptr, 2, VFS::Directory, "/");
     root = ext2_entry;
     // ext2_entry->inflate();
@@ -183,7 +183,7 @@ void EXT2_FS::write_super() {
     _u32 super_pos = 1;  // super block 
     MM::Buf buf(sizeof(SuperBlock));
     memcpy(buf.data, sb, sizeof(SuperBlock));
-    for (EXT2_GD *x: gdt_list) {
+    for (size_t i = 0; i < gdt_list.size(); i++) {
         dev->write(buf, block_to_pos(super_pos), sizeof(SuperBlock));
         super_pos += sb->blocks_per_group;
     }
@@ -201,7 +201,7 @@ void EXT2_FS::write_gdt() {
         x->write_inode_bitmap();
         x->write_block_bitmap();
     }
-    for (EXT2_GD *x: gdt_list) {
+    for (size_t i = 0; i < gdt_list.size(); i++) {
         dev->write(buf, block_to_pos(super_pos), sizeof(GroupDescriptor));
         super_pos += sb->blocks_per_group;
     }
@@ -222,4 +222,5 @@ EXT2_FS::~EXT2_FS() {
         delete x;
     }
     delete sb;
+    delete root;
 }

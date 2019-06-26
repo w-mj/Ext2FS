@@ -26,7 +26,7 @@ void EXT2_Inode::print() {
     cerr << "目录访问控制列表 " << i->dir_acl << endl;
     cerr << "片地址 " << i->faddr << endl;
     cerr << "数据块指针 ";
-    for (int j = 0; j < min(blocks, (_u32)15); j++)
+    for (_u32 j = 0; j < min(blocks, (_u32)15); j++)
         cerr << i->block[j] << " ";
     cerr << endl;
 }
@@ -317,7 +317,7 @@ EXT2_Inode::iterator::operator==(const iterator& ano) const {
     _error(inode != ano.inode);
     if (ano.index_cnt != index_cnt || ano.level != level)
         return false;
-    for (_u32 i = 0; i < level; i++) {
+    for (int i = 0; i < level; i++) {
         if (indexs[i] != ano.indexs[i])
             return false;
     }

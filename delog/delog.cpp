@@ -253,7 +253,7 @@ _print_debug_CON:
         default:
             fprintf(stderr, "Unknown fmt %c\n", fmt[0]);
     }
-_print_debug_END:
+// _print_debug_END:
     return ;
 }
 
@@ -323,7 +323,7 @@ _I print_bin(_s s, _I size, _u8 *p, _I len) {
         if ((i & _BITS_MASK(LINEBSIZE)) == 0) {
             last_i = LINENUM;
             if (j > 0 && j < LINENUM + 1) {
-                for (int t = 0; t < LINENUM - j; t++)
+                for (_u32 t = 0; t < LINENUM - j; t++)
                     fmt_dot(s, n);
                 last_i = j;
             } 
@@ -348,7 +348,7 @@ _I print_bin(_s s, _I size, _u8 *p, _I len) {
     if (len) {
         last_i = LINENUM;
         if (j > 0 && j < LINENUM + 1) {
-            for (int t = 0; t < LINENUM - j; t++)
+            for (_u32 t = 0; t < LINENUM - j; t++)
                 fmt_dot(s, n);
             last_i = j;
         }

@@ -98,6 +98,9 @@ namespace VFS
         DEntry *get_path(const NameI *namei, std::string* fname=nullptr);
 
         std::string printed_path();
+
+
+        virtual ~DEntry() {}
     };
 
     enum {
@@ -107,7 +110,7 @@ namespace VFS
 
     class FS {
     public:
-        Dev::BlockDevice* dev;  // 设备
+        Dev::BlockDevice* dev=nullptr;  // 设备
         // _u32 flag;  // 安装标志
         _u32 magic;  // 文件系统标志
 
@@ -142,11 +145,12 @@ namespace VFS
         _u8 sock;  // 如果文件是一个socket则为0
         int lock;  // 自旋锁
 
-        FS* fs;
+        FS* fs=nullptr;
     public:
-        Inode(FS* fs1):fs(fs1), dev(fs1->dev) {}
+        Inode(FS* fs1):dev(fs1->dev), fs(fs1) {}
         // 将Inode标记为脏，找时机写回设备        
         virtual void dirty()=0;
+        virtual ~Inode() {}
     };
 
 
@@ -164,6 +168,9 @@ namespace VFS
         virtual int read(char*, int size)=0;
         virtual int write(const char*, int size)=0;
         virtual void close();
+
+        virtual ~File() {}
+
     };
 
     _u8 mode_to_type(_u8 mode);

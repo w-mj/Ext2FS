@@ -251,11 +251,28 @@ VFS::DEntry *mount(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     FS* new_fs = new EXT2::EXT2_FS(d);
     new_fs->mount();
     new_fs->root->load_children();
+    new_fs->root->parent = mnt_e->parent;
     // mnt_e->inode = new_fs->root->inode;
     // mnt_e->children = new_fs->root->children;
     new_fs->root->name = mnt_e->name;
     mnt_e->parent->children.push_back(new_fs->root);
     mnt_e->parent->children.remove(mnt_e);
+    return cwd;
+}
+
+VFS::DEntry *umount(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    using namespace VFS;
+    NameI *dir = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
+    DEntry *mnt_e = cwd->get_child(dir);
+    if (mnt_e == nullptr) {
+        std::cout << "no such diectory " << cmdd[cmdd.size() - 1] << std::endl;
+        return cwd;
+    }
+    DEntry *t = mnt_e->parent;
+    t->children.clear();
+    t->load_children();
+    mnt_e->fs->dev->close();
+    delete mnt_e->fs;
     return cwd;
 }
 
@@ -271,6 +288,7 @@ OP ops[] = {
     {"cp", cp},
     {"ln", symlink},
     {"mount", mount},
+    {"umount", umount},
     {"unknown", nullptr}
 };
 

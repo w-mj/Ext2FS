@@ -12,7 +12,7 @@
 #define _lshf(a, n) ((a) >> (n))
 #define _Lclr(a, n) ((a) & (~(_BITS_MASK(n))))
 #define _Hclr(a, n) _rshf(_lshf(a, n), n)
-#define _LNclr(a, n) ((a & (_BITS_MASK(n))))
+#define _LNclr(a, n) (((a) & (_BITS_MASK(n))))
 
 #include "types.h"
 

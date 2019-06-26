@@ -138,9 +138,6 @@ VFS::NameI *VFS::NameI::from_str(const std::string& path) {
     }
     _pos();
     return ans;
-error:
-    delete ans;
-    return nullptr;
 }
 
 _u8 VFS::mode_to_type(_u8 mode) {

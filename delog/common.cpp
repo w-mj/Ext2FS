@@ -2,7 +2,7 @@
 
 
 std::vector<std::string> split(const std::string& s, char sp) {
-    int i = 0, l = 0;
+    size_t i = 0, l = 0;
     std::vector<std::string> res;
     while (i < s.size()) {
         if (s[i] == sp) {

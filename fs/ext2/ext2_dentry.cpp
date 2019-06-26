@@ -49,7 +49,7 @@ void EXT2_DEntry::load_children() {
         dev->read(buf, data_block_pos, ext2_fs->block_size);
         // _sa(buf.data, ext2_fs->block_size);
         _u32 s_pos = 0;
-        _u32 next_length = 12;
+        // _u32 next_length = 12;
         while (all_length < ext2_inode->size) {
             // _sa(buf.data + s_pos, 20);
             memmove(temp_str, buf.data + s_pos, sizeof(DirEntry));
@@ -397,5 +397,9 @@ VFS::DEntry *EXT2_DEntry::follow() {
 
 EXT2_DEntry::~EXT2_DEntry() {
     delete inode;
+    for (auto x: children) {
+        if (x->name != ".." && x->name != ".")
+            delete x;
+    }
 }
 

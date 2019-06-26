@@ -14,7 +14,9 @@ INC_FLAG = $(addprefix -I, $(INC_PATH))
 DEFINES = DEBUG
 DEF_FLAG = $(addprefix -D, $(DEFINES))
 
-CC_FLAG = $(INC_FLAG) $(DEF_FLAG)
+OTH_FLAG = -Werror -Wall
+
+CC_FLAG = $(INC_FLAG) $(DEF_FLAG) $(OTH_FLAG)
 
 # MAIN_NAME = config/test_config
 # OBJ_FILE= $(addsuffix .o, $(addprefix $(OBJ_PATH)/, $(SRC_NAME)))

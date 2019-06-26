@@ -66,7 +66,7 @@ int EXT2_File::read(char *buf, int len) {
     ext2_fs->dev->read(buff, pos_in_fs, block_size);  // 从第一个块读入数据，每次都读出一整块
     memcpy(buf, buff.data + byte_in_block, std::min((_u32)len, block_size - byte_in_block));
     read_len = std::min((_u32)len, block_size - byte_in_block);
-    while (read_len < len && pos + read_len < size) {
+    while (read_len < (_u32)len && pos + read_len < (_u32)size) {
         it++;  // 指向下一个块
         block_n = *it;  // 下一个块号
         pos_in_fs = ext2_fs->block_to_pos(block_n);  // 下一个块的位置
@@ -95,7 +95,7 @@ int EXT2_File::write(const char *buf, int len) {
     memcpy(buff.data, buf, this_write_len);
     ext2_fs->dev->write(buff, pos_in_fs + byte_in_block, this_write_len);  // 向第一个块写数据
     write_len = this_write_len;
-    while (write_len < len) {
+    while (write_len < (_u32)len) {
         it++;  // 指向下一个块
         block_n = *it;  // 下一个块号，其实这里可以自动分配空间，不用resize
         pos_in_fs = ext2_fs->block_to_pos(block_n);  // 下一个块的位置
