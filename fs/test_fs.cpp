@@ -16,6 +16,27 @@ struct OP {
     const char *name;
     VFS::DEntry* (*op)(VFS::DEntry *, const std::vector<std::string>&);
 };
+// 2 r 1 w 0 x
+bool check(VFS::Inode *i, int pre) {
+    if (i->uid == uid) {
+        return i->mode & (0100 << pre);
+    }
+    if (i->gid == gid) {
+        return i->mode & (0010 << pre);
+    }
+    return i->mode & (0001 << pre);
+}
+
+#define chk_r(i) check(i, 2)
+#define chk_w(i) check(i, 1)
+#define chk_x(i) check(i, 0)
+
+#define pre(f, i) do {\
+    if (!f(i)) {\
+        std::cout << "Premission denine." << std::endl;\
+        return cwd;\
+    }\
+} while(0)
 
 static void ls_one(VFS::DEntry *x, bool l) {
     using namespace std;
@@ -49,6 +70,11 @@ VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     // t = cwd;
     if (t == nullptr) {
         cout << "No such file or directory. " << cmdd[cmdd.size() - 1] << endl;
+        return cwd;
+    }
+    t->inflate();
+    if (!chk_r(t->inode)) {
+        std::cout << "Premission denine." << std::endl;
         return cwd;
     }
     if (t->type == VFS::Directory) {
@@ -303,6 +329,25 @@ VFS::DEntry *echo(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     return cwd;
 }
 
+VFS::DEntry *chmod(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    VFS::NameI *fi = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
+    VFS::DEntry *file = cwd->get_child(fi);
+    return cwd;
+}
+
+VFS::DEntry *chown(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    if (cmdd.size() != 4)
+        return cwd;
+    VFS::NameI *fi = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
+    VFS::DEntry *file = cwd->get_child(fi);
+    file->inflate();
+    pre(chk_w, file->inode);
+    file->inode->uid = stoi(cmdd[1]);
+    file->inode->gid = stoi(cmdd[2]);
+    file->inode->dirty();
+    return cwd;
+}
+
 OP ops[] = {
     {"ls", ls},
     {"cd", cd},
@@ -317,6 +362,7 @@ OP ops[] = {
     {"mount", mount},
     {"umount", umount},
     {"echo", echo},
+    {"chown", chown},
     {"unknown", nullptr}
 };
 
@@ -329,7 +375,7 @@ struct User {
         uid = stoi(s[1]);
         gid = stoi(s[2]);
         passwd = s[3];
-        std::cout << uname << " " << uid << " " << gid << " " << passwd << std::endl;
+        // std::cout << uname << " " << uid << " " << gid << " " << passwd << std::endl;
     }
 };
 

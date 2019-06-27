@@ -173,6 +173,7 @@ VFS::DEntry* EXT2_DEntry::mkdir(const std::string& new_name) {
 
     DirEntry new_disk_entry[1];    
     // 在子目录的文件体中写入.和..
+    new_disk_entry->file_type = VFS::Directory;
     EXT2_File child_body(new_entry, new_i);
     new_disk_entry->inode = new_i_n;
     new_disk_entry->rec_len = 12;
