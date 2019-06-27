@@ -45,6 +45,7 @@ VFS::DEntry *ls(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     using namespace std;
     VFS::NameI *target = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     auto t = cwd->get_child(target);
+    // t = cwd;
     if (t == nullptr) {
         cout << "No such file or directory. " << cmdd[cmdd.size() - 1] << endl;
         return cwd;
@@ -276,6 +277,31 @@ VFS::DEntry *umount(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     return cwd;
 }
 
+VFS::DEntry *echo(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
+    if (cmdd.size() != 4)
+        return cwd;
+    const std::string& text = cmdd[1];
+    VFS::NameI *fi = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
+    VFS::DEntry *file = cwd->get_child(fi);
+    if (file == nullptr) {
+        std::cout << "no such file " << cmdd[cmdd.size() - 1] << std::endl;
+        return cwd;
+    }
+    if (file->type != VFS::RegularFile) {
+        std::cout << cmdd[cmdd.size() - 1] << " is not a file." << std::endl;
+        return cwd;
+    }
+    VFS::File *f = file->open();
+    if (cmdd[2] == ">>") {
+        f->seek(0, SEEK_END);
+    } else {
+        f->seek(0, SEEK_SET);
+    }
+    f->write(text.c_str(), text.size());
+    f->close();
+    return cwd;
+}
+
 OP ops[] = {
     {"ls", ls},
     {"cd", cd},
@@ -289,6 +315,7 @@ OP ops[] = {
     {"ln", symlink},
     {"mount", mount},
     {"umount", umount},
+    {"echo", echo},
     {"unknown", nullptr}
 };
 
@@ -311,6 +338,8 @@ int main(void) {
 
     cout << "[umount]$ ";
     while (getline(cin, cmd)) {
+        if (cmd.size() == 0)
+            continue;
         vector<string> cmdd = split(cmd, ' ');
         if (cmd == "mount") {
             fs->mount();

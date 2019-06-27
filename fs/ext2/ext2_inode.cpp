@@ -102,6 +102,7 @@ void EXT2_Inode::write_inode() {
     MM::Buf buf(sizeof(EXT2::Inode));
     i->blocks = blocks * (ext2_fs->block_size / 512);
     i->size = size;
+    _si(size);
     i->mode = mode;
     i->links_count=nlink;
     i->uid = uid;

@@ -47,6 +47,7 @@ int EXT2_File::seek(int pos, int whence) {
         default:
             _error_s(whence, "Unknow whence");
     }
+    _si(this->pos);
     return this->pos;
 }
 
@@ -64,6 +65,7 @@ int EXT2_File::read(char *buf, int len) {
 
     MM::Buf buff(block_size);
     ext2_fs->dev->read(buff, pos_in_fs, block_size);  // 从第一个块读入数据，每次都读出一整块
+    _sa(buff.data, 1024);
     memcpy(buf, buff.data + byte_in_block, std::min((_u32)len, block_size - byte_in_block));
     read_len = std::min((_u32)len, block_size - byte_in_block);
     while (read_len < (_u32)len && pos + read_len < (_u32)size) {
@@ -79,8 +81,9 @@ int EXT2_File::read(char *buf, int len) {
 }
 
 int EXT2_File::write(const char *buf, int len) {
-    if (len + pos > size)
-        resize(len + pos);
+    _si(pos);
+    
+    resize(len + pos);
     // ext2_inode->print();
     _u32 write_len = 0, this_write_len;
     _u32 block_size = ext2_fs->block_size;  // 块大小
@@ -117,6 +120,10 @@ void EXT2_File::resize(_u32 new_size) {
     _u32 target_block = new_size / fs->block_size + (new_size % fs->block_size > 0);
     _dbg_log("resize from %d to %d", current_block, target_block);
     if (target_block == current_block) {
+        _dbg_log("do not alloc size form %d to %d", size, new_size);
+        size = new_size;
+        ext2_inode->size = new_size;
+        ext2_inode->write_inode();
         return;
     }
     auto it = ext2_inode->alloc_iter(); 
