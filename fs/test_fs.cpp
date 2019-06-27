@@ -18,6 +18,8 @@ struct OP {
 };
 // 2 r 1 w 0 x
 bool check(VFS::Inode *i, int pre) {
+    if (uid == 0)
+        return true;
     if (i->uid == uid) {
         return i->mode & (0100 << pre);
     }
@@ -332,6 +334,16 @@ VFS::DEntry *echo(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
 VFS::DEntry *chmod(VFS::DEntry *cwd, const std::vector<std::string>& cmdd) {
     VFS::NameI *fi = VFS::NameI::from_str(cmdd[cmdd.size() - 1]);
     VFS::DEntry *file = cwd->get_child(fi);
+    file->inflate();
+    pre(chk_w, file->inode);
+    int m = 0;
+    for (char x: cmdd[1]) {
+        m <<= 3;
+        m += x - '0';
+    }
+    file->inode->mode &= ~(0777);
+    file->inode->mode |= m;
+    file->inode->dirty();
     return cwd;
 }
 
@@ -363,6 +375,7 @@ OP ops[] = {
     {"umount", umount},
     {"echo", echo},
     {"chown", chown},
+    {"chmod", chmod},
     {"unknown", nullptr}
 };
 
