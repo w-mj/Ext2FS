@@ -81,7 +81,7 @@ int EXT2_File::read(char *buf, int len) {
 }
 
 int EXT2_File::write(const char *buf, int len) {
-    _si(pos);
+    // _si(pos);
     
     resize(len + pos);
     // ext2_inode->print();

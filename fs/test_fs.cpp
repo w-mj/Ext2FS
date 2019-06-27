@@ -10,6 +10,7 @@
 #include "stat.h"
 #include "delog/common.h"
 #include "fs/real_file/real_file.h"
+static int uid, gid;
 
 struct OP {
     const char *name;
@@ -319,6 +320,47 @@ OP ops[] = {
     {"unknown", nullptr}
 };
 
+struct User {
+    std::string uname;
+    int uid, gid;
+    std::string passwd;
+    User(std::vector<std::string> s) {
+        uname = s[0];
+        uid = stoi(s[1]);
+        gid = stoi(s[2]);
+        passwd = s[3];
+        std::cout << uname << " " << uid << " " << gid << " " << passwd << std::endl;
+    }
+};
+
+void login(VFS::DEntry *root) {
+    auto de = root->get_child("passwd");
+    auto pass = de->open();
+    char buf[pass->size];
+    pass->read(buf, pass->size);
+    std::string s(buf, pass->size);
+    auto sp = split(s, '\n');
+    std::vector<User> uv;
+    for (auto x: sp) {
+        uv.emplace_back(split(x, ':'));
+    }
+    std::string buf2, buf1;
+    bool success = false;
+    do {
+        std::cout << "user: ";
+        std::cin >> buf2;
+        std::cout << "password: ";
+        std::cin >> buf1;
+        for (auto x: uv) {
+            if (x.uname == buf2 && x.passwd == buf1) {
+                uid = x.uid;
+                gid = x.gid;
+                success = true;
+            }
+        }
+    } while (!success);
+}
+
 #include <unistd.h>
 int main(void) {
     using namespace std;
@@ -335,8 +377,10 @@ int main(void) {
 
     fs->mount();
     cwd = fs->root;
+    login(cwd);
 
-    cout << "[umount]$ ";
+
+    cout << "/$ ";
     while (getline(cin, cmd)) {
         if (cmd.size() == 0)
             continue;
